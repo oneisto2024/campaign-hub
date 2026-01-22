@@ -21,6 +21,7 @@ import {
   Bot,
   Link,
   UserMinus,
+  Building2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -109,6 +110,14 @@ export const moduleGroups: NavGroup[] = [
 ];
 
 export const adminGroups: NavGroup[] = [
+  {
+    title: 'Client Management',
+    icon: Building2,
+    items: [
+      { title: 'Create Client', href: '/clients/create', icon: Building2 },
+      { title: 'All Clients', href: '/clients/all', icon: Building2 },
+    ],
+  },
   {
     title: 'Administration',
     icon: UserPlus,
