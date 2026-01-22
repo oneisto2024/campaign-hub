@@ -10,6 +10,7 @@ import MyCalendar from "./pages/MyCalendar";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import CreateClient from "./pages/CreateClient";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,10 @@ const App = () => (
               <Route path="/my-calendar" element={<MyCalendar />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
+              
+              {/* Client Management */}
+              <Route path="/clients/create" element={<CreateClient />} />
+              <Route path="/clients/all" element={<PlaceholderPage />} />
               
               {/* Project Initiator */}
               <Route path="/project-initiator/create-campaign" element={<PlaceholderPage />} />
