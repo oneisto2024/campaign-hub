@@ -11,6 +11,8 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import CreateClient from "./pages/CreateClient";
+import CreateCampaign from "./pages/CreateCampaign";
+import AllProjects from "./pages/AllProjects";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,8 +36,8 @@ const App = () => (
               <Route path="/clients/all" element={<PlaceholderPage />} />
               
               {/* Project Initiator */}
-              <Route path="/project-initiator/create-campaign" element={<PlaceholderPage />} />
-              <Route path="/project-initiator/all-projects" element={<PlaceholderPage />} />
+              <Route path="/project-initiator/create-campaign" element={<CreateCampaign />} />
+              <Route path="/project-initiator/all-projects" element={<AllProjects />} />
               
               {/* DB Import */}
               <Route path="/db-import/all-campaigns" element={<PlaceholderPage />} />
