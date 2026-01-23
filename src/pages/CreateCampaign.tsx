@@ -10,8 +10,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Upload, X, Check, Link, FileText } from 'lucide-react';
+import { CalendarIcon, Upload, X, Check, Link, FileText, Plus, Minus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const CAMPAIGN_TYPES = [
   { id: 'mql', label: 'MQL (Single-Touch)' },
@@ -36,17 +38,53 @@ const MOCK_CLIENTS = [
   { id: '3', name: 'Global Solutions', email: 'info@globalsolutions.com' },
 ];
 
-const SCOPE_QUESTIONS = [
-  'What is the target audience for this campaign?',
-  'What are the key deliverables expected?',
-  'What is the expected timeline?',
-  'Are there any specific compliance requirements?',
-  'What are the success metrics?',
+const COUNTRIES = [
+  'United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands',
+  'Belgium', 'Switzerland', 'Austria', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Ireland',
+  'Australia', 'New Zealand', 'Japan', 'South Korea', 'China', 'India', 'Singapore', 'Hong Kong',
+  'Taiwan', 'Indonesia', 'Thailand', 'Malaysia', 'Philippines', 'Vietnam', 'Brazil', 'Mexico',
+  'Argentina', 'Chile', 'Colombia', 'Peru', 'United Arab Emirates', 'Saudi Arabia', 'Israel',
+  'South Africa', 'Nigeria', 'Kenya', 'Egypt', 'Poland', 'Czech Republic', 'Romania', 'Hungary',
+  'Greece', 'Portugal', 'Turkey', 'Russia', 'Ukraine'
 ];
+
+const EMPLOYEE_SIZE_RANGES = [
+  '1-10',
+  '10-50',
+  '50-250',
+  '250-1,000',
+  '1,000-5,000',
+  '5,000-10,000',
+  '10,000+'
+];
+
+interface CustomQuestion {
+  question: string;
+  options: string[];
+}
 
 interface MilestoneDate {
   startDate: Date | undefined;
   endDate: Date | undefined;
+}
+
+export interface ScopeData {
+  countries: string[];
+  leadsPerRegion: Record<string, string>;
+  hasCustomQuestions: boolean;
+  customQuestionsCount: number;
+  customQuestions: CustomQuestion[];
+  targetAudience: string;
+  jobTitles: string;
+  employeeSizeRanges: string[];
+  industry: string;
+  revenue: string;
+  installedTechBase: string;
+  contactPerCompany: string;
+  suppressionList: string;
+  hasAcceptedCompanyList: 'yes' | 'no' | 'none';
+  acceptedCompanyFile: File | null;
+  isTelemarketing: 'yes' | 'no';
 }
 
 const CreateCampaign = () => {
@@ -65,9 +103,27 @@ const CreateCampaign = () => {
   // Tab 3 - Scope Document
   const [hasScopeDocument, setHasScopeDocument] = useState<'yes' | 'no' | ''>('');
   const [scopeFiles, setScopeFiles] = useState<File[]>([]);
-  const [scopeAnswers, setScopeAnswers] = useState<Record<number, string>>({});
   const [hasDeliveryFile, setHasDeliveryFile] = useState<'yes' | 'no' | ''>('');
   const [deliveryFiles, setDeliveryFiles] = useState<File[]>([]);
+
+  // Scope Questions (when no document)
+  const [countrySearch, setCountrySearch] = useState('');
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [leadsPerRegion, setLeadsPerRegion] = useState<Record<string, string>>({});
+  const [hasCustomQuestions, setHasCustomQuestions] = useState(false);
+  const [customQuestionsCount, setCustomQuestionsCount] = useState(0);
+  const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>([]);
+  const [targetAudience, setTargetAudience] = useState('');
+  const [jobTitles, setJobTitles] = useState('');
+  const [employeeSizeRanges, setEmployeeSizeRanges] = useState<string[]>([]);
+  const [industry, setIndustry] = useState('');
+  const [revenue, setRevenue] = useState('');
+  const [installedTechBase, setInstalledTechBase] = useState('');
+  const [contactPerCompany, setContactPerCompany] = useState('');
+  const [suppressionList, setSuppressionList] = useState('');
+  const [hasAcceptedCompanyList, setHasAcceptedCompanyList] = useState<'yes' | 'no' | 'none'>('none');
+  const [acceptedCompanyFile, setAcceptedCompanyFile] = useState<File | null>(null);
+  const [isTelemarketing, setIsTelemarketing] = useState<'yes' | 'no'>('no');
 
   // Tab 4 - Assets
   const [assetType, setAssetType] = useState<'file' | 'link' | 'not-received'>('link');
@@ -82,7 +138,6 @@ const CreateCampaign = () => {
   const [milestoneDates, setMilestoneDates] = useState<MilestoneDate[]>([]);
 
   const handleClientIdChange = (value: string) => {
-    // Limit to 10 characters
     if (value.length <= 10) {
       setClientId(value.toUpperCase());
     }
@@ -109,6 +164,13 @@ const CreateCampaign = () => {
       toast({ title: 'Only PDF files are allowed', variant: 'destructive' });
     }
     setAssetFiles([...assetFiles, ...pdfFiles]);
+  };
+
+  const handleAcceptedCompanyFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAcceptedCompanyFile(file);
+    }
   };
 
   const validateUrl = (url: string): boolean => {
@@ -144,6 +206,67 @@ const CreateCampaign = () => {
     setMilestoneDates(newDates);
   };
 
+  // Country selection
+  const toggleCountry = (country: string) => {
+    if (selectedCountries.includes(country)) {
+      setSelectedCountries(selectedCountries.filter(c => c !== country));
+      const newLeadsPerRegion = { ...leadsPerRegion };
+      delete newLeadsPerRegion[country];
+      setLeadsPerRegion(newLeadsPerRegion);
+    } else {
+      setSelectedCountries([...selectedCountries, country]);
+    }
+  };
+
+  const filteredCountries = COUNTRIES.filter(c => 
+    c.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+
+  // Custom questions
+  const handleCustomQuestionsCountChange = (value: string) => {
+    const count = Math.min(Math.max(0, parseInt(value) || 0), 15);
+    setCustomQuestionsCount(count);
+    setCustomQuestions(
+      Array(count).fill(null).map((_, i) => customQuestions[i] || { question: '', options: [''] })
+    );
+  };
+
+  const updateCustomQuestion = (index: number, question: string) => {
+    const newQuestions = [...customQuestions];
+    newQuestions[index] = { ...newQuestions[index], question };
+    setCustomQuestions(newQuestions);
+  };
+
+  const addOptionToQuestion = (questionIndex: number) => {
+    if (customQuestions[questionIndex].options.length >= 25) {
+      toast({ title: 'Maximum 25 options allowed', variant: 'destructive' });
+      return;
+    }
+    const newQuestions = [...customQuestions];
+    newQuestions[questionIndex].options.push('');
+    setCustomQuestions(newQuestions);
+  };
+
+  const removeOptionFromQuestion = (questionIndex: number, optionIndex: number) => {
+    const newQuestions = [...customQuestions];
+    newQuestions[questionIndex].options = newQuestions[questionIndex].options.filter((_, i) => i !== optionIndex);
+    setCustomQuestions(newQuestions);
+  };
+
+  const updateQuestionOption = (questionIndex: number, optionIndex: number, value: string) => {
+    const newQuestions = [...customQuestions];
+    newQuestions[questionIndex].options[optionIndex] = value;
+    setCustomQuestions(newQuestions);
+  };
+
+  const toggleEmployeeSize = (size: string) => {
+    if (employeeSizeRanges.includes(size)) {
+      setEmployeeSizeRanges(employeeSizeRanges.filter(s => s !== size));
+    } else {
+      setEmployeeSizeRanges([...employeeSizeRanges, size]);
+    }
+  };
+
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
@@ -154,7 +277,7 @@ const CreateCampaign = () => {
         if (hasScopeDocument === 'yes') {
           return scopeFiles.length > 0;
         } else if (hasScopeDocument === 'no') {
-          return Object.keys(scopeAnswers).length === SCOPE_QUESTIONS.length;
+          return selectedCountries.length > 0 && targetAudience.length > 0;
         }
         return !!hasScopeDocument;
       case 4:
@@ -163,7 +286,7 @@ const CreateCampaign = () => {
         } else if (assetType === 'link') {
           return assetLinks.some(link => validateUrl(link));
         }
-        return true; // 'not-received' is valid
+        return true;
       case 5:
         return !!(leadsRequired && campaignStartDate && campaignEndDate && milestonesCount && parseInt(milestonesCount) > 0);
       default:
@@ -191,9 +314,24 @@ const CreateCampaign = () => {
     setCampaignType('');
     setHasScopeDocument('');
     setScopeFiles([]);
-    setScopeAnswers({});
     setHasDeliveryFile('');
     setDeliveryFiles([]);
+    setSelectedCountries([]);
+    setLeadsPerRegion({});
+    setHasCustomQuestions(false);
+    setCustomQuestionsCount(0);
+    setCustomQuestions([]);
+    setTargetAudience('');
+    setJobTitles('');
+    setEmployeeSizeRanges([]);
+    setIndustry('');
+    setRevenue('');
+    setInstalledTechBase('');
+    setContactPerCompany('');
+    setSuppressionList('');
+    setHasAcceptedCompanyList('none');
+    setAcceptedCompanyFile(null);
+    setIsTelemarketing('no');
     setAssetType('link');
     setAssetFiles([]);
     setAssetLinks(['']);
@@ -205,13 +343,31 @@ const CreateCampaign = () => {
     setCurrentStep(1);
   };
 
+  const getScopeData = (): ScopeData => ({
+    countries: selectedCountries,
+    leadsPerRegion,
+    hasCustomQuestions,
+    customQuestionsCount,
+    customQuestions,
+    targetAudience,
+    jobTitles,
+    employeeSizeRanges,
+    industry,
+    revenue,
+    installedTechBase,
+    contactPerCompany,
+    suppressionList,
+    hasAcceptedCompanyList,
+    acceptedCompanyFile,
+    isTelemarketing,
+  });
+
   const handleSubmit = () => {
     if (!validateStep(currentStep)) {
       toast({ title: 'Please fill all required fields', variant: 'destructive' });
       return;
     }
 
-    // Collect all form data
     const formData = {
       campaignName,
       clientId,
@@ -220,7 +376,7 @@ const CreateCampaign = () => {
       campaignType,
       hasScopeDocument,
       scopeFiles,
-      scopeAnswers,
+      scopeData: hasScopeDocument === 'no' ? getScopeData() : null,
       hasDeliveryFile,
       deliveryFiles,
       assetType,
@@ -432,19 +588,307 @@ const CreateCampaign = () => {
         )}
 
         {hasScopeDocument === 'no' && (
-          <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-            <Label>Please answer the following questions:</Label>
-            {SCOPE_QUESTIONS.map((question, index) => (
-              <div key={index} className="space-y-2">
-                <Label className="text-sm font-normal">{index + 1}. {question}</Label>
+          <ScrollArea className="h-[500px] pr-4">
+            <div className="space-y-6 p-4 bg-muted/50 rounded-lg">
+              {/* Countries Selection */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">
+                  Countries<span className="text-destructive">*</span>
+                </Label>
                 <Input
-                  value={scopeAnswers[index] || ''}
-                  onChange={(e) => setScopeAnswers({ ...scopeAnswers, [index]: e.target.value })}
-                  placeholder="Your answer..."
+                  placeholder="Search countries..."
+                  value={countrySearch}
+                  onChange={(e) => setCountrySearch(e.target.value)}
+                />
+                <div className="max-h-40 overflow-y-auto border rounded-md p-2 bg-background">
+                  <div className="flex flex-wrap gap-2">
+                    {filteredCountries.map((country) => (
+                      <Badge
+                        key={country}
+                        variant={selectedCountries.includes(country) ? 'default' : 'outline'}
+                        className="cursor-pointer"
+                        onClick={() => toggleCountry(country)}
+                      >
+                        {country}
+                        {selectedCountries.includes(country) && <X className="h-3 w-3 ml-1" />}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                {selectedCountries.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Selected: {selectedCountries.length} countries
+                  </p>
+                )}
+              </div>
+
+              {/* Leads Per Region */}
+              {selectedCountries.length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Leads Per Region</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {selectedCountries.map((country) => (
+                      <div key={country} className="flex items-center gap-2">
+                        <span className="text-sm min-w-[120px]">{country}:</span>
+                        <Input
+                          type="number"
+                          placeholder="Leads count"
+                          value={leadsPerRegion[country] || ''}
+                          onChange={(e) => setLeadsPerRegion({ ...leadsPerRegion, [country]: e.target.value })}
+                          className="flex-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Questions */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="hasCustomQuestions"
+                    checked={hasCustomQuestions}
+                    onCheckedChange={(checked) => setHasCustomQuestions(checked === true)}
+                  />
+                  <Label htmlFor="hasCustomQuestions">
+                    Do you have any Custom Questions to be asked to potential customers? (CQ)
+                  </Label>
+                </div>
+
+                {hasCustomQuestions && (
+                  <div className="space-y-4 p-3 bg-background rounded border">
+                    <div>
+                      <Label>Number of Questions (Max 15)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="15"
+                        value={customQuestionsCount}
+                        onChange={(e) => handleCustomQuestionsCountChange(e.target.value)}
+                        className="mt-1 w-32"
+                      />
+                    </div>
+
+                    {customQuestions.map((cq, qIndex) => (
+                      <div key={qIndex} className="p-3 bg-muted/50 rounded border">
+                        <Label className="text-sm font-medium">Question {qIndex + 1}</Label>
+                        <Input
+                          value={cq.question}
+                          onChange={(e) => updateCustomQuestion(qIndex, e.target.value)}
+                          placeholder="Enter your question..."
+                          className="mt-1"
+                        />
+                        <div className="mt-3 space-y-2">
+                          <Label className="text-xs text-muted-foreground">Options (Max 25)</Label>
+                          {cq.options.map((opt, optIndex) => (
+                            <div key={optIndex} className="flex gap-2">
+                              <Input
+                                value={opt}
+                                onChange={(e) => updateQuestionOption(qIndex, optIndex, e.target.value)}
+                                placeholder={`Option ${optIndex + 1}`}
+                                className="flex-1"
+                              />
+                              {cq.options.length > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9"
+                                  onClick={() => removeOptionFromQuestion(qIndex, optIndex)}
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addOptionToQuestion(qIndex)}
+                            disabled={cq.options.length >= 25}
+                          >
+                            <Plus className="h-4 w-4 mr-1" /> Add Option
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Target Audience */}
+              <div>
+                <Label htmlFor="targetAudience">
+                  Target Audience<span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="targetAudience"
+                  value={targetAudience}
+                  onChange={(e) => setTargetAudience(e.target.value)}
+                  placeholder="Describe target audience..."
+                  className="mt-1"
                 />
               </div>
-            ))}
-          </div>
+
+              {/* Job Titles */}
+              <div>
+                <Label htmlFor="jobTitles">Job Titles</Label>
+                <Input
+                  id="jobTitles"
+                  value={jobTitles}
+                  onChange={(e) => setJobTitles(e.target.value)}
+                  placeholder="e.g., CTO, VP Engineering, IT Director..."
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Employee Size */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Employee Size</Label>
+                <div className="flex flex-wrap gap-2">
+                  {EMPLOYEE_SIZE_RANGES.map((size) => (
+                    <Badge
+                      key={size}
+                      variant={employeeSizeRanges.includes(size) ? 'default' : 'outline'}
+                      className="cursor-pointer"
+                      onClick={() => toggleEmployeeSize(size)}
+                    >
+                      {size}
+                      {employeeSizeRanges.includes(size) && <Check className="h-3 w-3 ml-1" />}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Industry */}
+              <div>
+                <Label htmlFor="industry">Industry</Label>
+                <Input
+                  id="industry"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  placeholder="e.g., Technology, Healthcare, Finance..."
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Revenue */}
+              <div>
+                <Label htmlFor="revenue">Revenue</Label>
+                <Input
+                  id="revenue"
+                  value={revenue}
+                  onChange={(e) => setRevenue(e.target.value)}
+                  placeholder="e.g., $10M-$50M, $100M+..."
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Installed Technology Base */}
+              <div>
+                <Label htmlFor="installedTechBase">Installed Technology Base</Label>
+                <Input
+                  id="installedTechBase"
+                  value={installedTechBase}
+                  onChange={(e) => setInstalledTechBase(e.target.value)}
+                  placeholder="e.g., Salesforce, AWS, Microsoft 365..."
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Contact Per Company */}
+              <div>
+                <Label htmlFor="contactPerCompany">Contact Per Company</Label>
+                <Input
+                  id="contactPerCompany"
+                  type="number"
+                  value={contactPerCompany}
+                  onChange={(e) => setContactPerCompany(e.target.value)}
+                  placeholder="Number of contacts per company"
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Suppression List */}
+              <div>
+                <Label htmlFor="suppressionList">Suppression List (Email/Domain/Company)</Label>
+                <Input
+                  id="suppressionList"
+                  value={suppressionList}
+                  onChange={(e) => setSuppressionList(e.target.value)}
+                  placeholder="Enter emails, domains, or companies to suppress..."
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Accepted Company List */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Accepted Company List</Label>
+                <RadioGroup
+                  value={hasAcceptedCompanyList}
+                  onValueChange={(v) => setHasAcceptedCompanyList(v as 'yes' | 'no' | 'none')}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="accepted-yes" />
+                    <Label htmlFor="accepted-yes" className="font-normal">Yes</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="accepted-no" />
+                    <Label htmlFor="accepted-no" className="font-normal">No</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="none" id="accepted-none" />
+                    <Label htmlFor="accepted-none" className="font-normal">None</Label>
+                  </div>
+                </RadioGroup>
+
+                {hasAcceptedCompanyList === 'yes' && (
+                  <div className="p-3 bg-background rounded border">
+                    <Label>Upload Accepted Company List</Label>
+                    <Input
+                      type="file"
+                      onChange={handleAcceptedCompanyFileUpload}
+                      className="mt-1"
+                    />
+                    {acceptedCompanyFile && (
+                      <div className="flex items-center gap-2 text-sm mt-2">
+                        <FileText className="h-4 w-4" />
+                        <span>{acceptedCompanyFile.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setAcceptedCompanyFile(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Is Telemarketing */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Is this a Telemarketing Project?</Label>
+                <RadioGroup
+                  value={isTelemarketing}
+                  onValueChange={(v) => setIsTelemarketing(v as 'yes' | 'no')}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="tele-yes" />
+                    <Label htmlFor="tele-yes" className="font-normal">Yes</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="tele-no" />
+                    <Label htmlFor="tele-no" className="font-normal">No</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+          </ScrollArea>
         )}
 
         <div className="border-t pt-6">

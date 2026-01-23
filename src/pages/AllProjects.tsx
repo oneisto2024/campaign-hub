@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -19,10 +18,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Search, Settings2, Eye, Trash2, Edit, Plus } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search, Settings2, Eye, Trash2, Edit, Plus, Check, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import { ScopeData } from './CreateCampaign';
+
+interface CustomQuestion {
+  question: string;
+  options: string[];
+}
 
 interface Project {
   id: string;
@@ -31,6 +43,8 @@ interface Project {
   projectName: string;
   uniqueId: string;
   projectSummary: string;
+  hasScopeDocument: boolean;
+  scopeData?: ScopeData;
   milestones: number;
   startDate: Date;
   projectAllocation: number;
@@ -53,6 +67,7 @@ const MOCK_PROJECTS: Project[] = [
     projectName: 'Q1 Lead Generation Campaign',
     uniqueId: 'PRJ-2026-001',
     projectSummary: 'MQL campaign targeting enterprise clients in APAC region',
+    hasScopeDocument: true,
     milestones: 4,
     startDate: new Date('2026-01-15'),
     projectAllocation: 5000,
@@ -72,6 +87,28 @@ const MOCK_PROJECTS: Project[] = [
     projectName: 'Webinar Series - Cloud Solutions',
     uniqueId: 'PRJ-2026-002',
     projectSummary: 'Webinar campaign for cloud product launch',
+    hasScopeDocument: false,
+    scopeData: {
+      countries: ['United States', 'Canada', 'United Kingdom', 'Germany'],
+      leadsPerRegion: { 'United States': '1500', 'Canada': '500', 'United Kingdom': '600', 'Germany': '400' },
+      hasCustomQuestions: true,
+      customQuestionsCount: 2,
+      customQuestions: [
+        { question: 'What cloud platform do you currently use?', options: ['AWS', 'Azure', 'GCP', 'None', 'Other'] },
+        { question: 'What is your main pain point with current solution?', options: ['Cost', 'Performance', 'Security', 'Support'] }
+      ],
+      targetAudience: 'IT Managers and CTOs at mid-market technology companies',
+      jobTitles: 'CTO, IT Director, VP Engineering, Cloud Architect',
+      employeeSizeRanges: ['250-1,000', '1,000-5,000', '5,000-10,000'],
+      industry: 'Technology, Finance, Healthcare',
+      revenue: '$50M-$500M',
+      installedTechBase: 'AWS, Microsoft 365, Salesforce',
+      contactPerCompany: '3',
+      suppressionList: 'competitor1.com, competitor2.com',
+      hasAcceptedCompanyList: 'yes',
+      acceptedCompanyFile: null,
+      isTelemarketing: 'no',
+    },
     milestones: 6,
     startDate: new Date('2026-02-01'),
     projectAllocation: 3000,
@@ -91,6 +128,25 @@ const MOCK_PROJECTS: Project[] = [
     projectName: 'ABM Campaign - Fortune 500',
     uniqueId: 'PRJ-2026-003',
     projectSummary: 'Account-based marketing for top enterprise accounts',
+    hasScopeDocument: false,
+    scopeData: {
+      countries: ['United States', 'Japan', 'Australia', 'Singapore'],
+      leadsPerRegion: { 'United States': '5000', 'Japan': '2000', 'Australia': '1500', 'Singapore': '1500' },
+      hasCustomQuestions: false,
+      customQuestionsCount: 0,
+      customQuestions: [],
+      targetAudience: 'C-Suite executives at Fortune 500 companies',
+      jobTitles: 'CEO, CFO, CTO, COO',
+      employeeSizeRanges: ['10,000+'],
+      industry: 'All industries',
+      revenue: '$1B+',
+      installedTechBase: 'SAP, Oracle, Salesforce',
+      contactPerCompany: '5',
+      suppressionList: '',
+      hasAcceptedCompanyList: 'yes',
+      acceptedCompanyFile: null,
+      isTelemarketing: 'yes',
+    },
     milestones: 8,
     startDate: new Date('2026-01-20'),
     projectAllocation: 10000,
@@ -110,6 +166,7 @@ const MOCK_PROJECTS: Project[] = [
     projectName: 'SQL Double-Touch Campaign',
     uniqueId: 'PRJ-2026-004',
     projectSummary: 'SQL campaign with email and phone touch points',
+    hasScopeDocument: true,
     milestones: 3,
     startDate: new Date('2025-11-01'),
     projectAllocation: 2000,
@@ -154,6 +211,8 @@ const AllProjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   const [projects] = useState<Project[]>(MOCK_PROJECTS);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isScopeDialogOpen, setIsScopeDialogOpen] = useState(false);
 
   const toggleColumn = (key: string) => {
     setColumns(columns.map(col => 
@@ -184,6 +243,11 @@ const AllProjects = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  const openScopeDialog = (project: Project) => {
+    setSelectedProject(project);
+    setIsScopeDialogOpen(true);
+  };
+
   const renderCellValue = (project: Project, columnKey: keyof Project | 'actions') => {
     switch (columnKey) {
       case 'sNo':
@@ -196,9 +260,22 @@ const AllProjects = () => {
         return <span className="font-mono text-sm text-muted-foreground">{project.uniqueId}</span>;
       case 'projectSummary':
         return (
-          <span className="text-sm text-muted-foreground line-clamp-2 max-w-xs">
-            {project.projectSummary}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground line-clamp-2 max-w-xs">
+              {project.projectSummary}
+            </span>
+            {!project.hasScopeDocument && project.scopeData && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => openScopeDialog(project)}
+                title="View scope details"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         );
       case 'milestones':
         return <Badge variant="outline">{project.milestones}</Badge>;
@@ -341,6 +418,144 @@ const AllProjects = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Scope Data Dialog */}
+      <Dialog open={isScopeDialogOpen} onOpenChange={setIsScopeDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Project Scope Details</DialogTitle>
+          </DialogHeader>
+          {selectedProject?.scopeData && (
+            <ScrollArea className="h-[60vh] pr-4">
+              <div className="space-y-6">
+                {/* Countries */}
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Target Countries</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedProject.scopeData.countries.map((country) => (
+                      <Badge key={country} variant="secondary">{country}</Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Leads Per Region */}
+                {Object.keys(selectedProject.scopeData.leadsPerRegion).length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Leads Per Region</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {Object.entries(selectedProject.scopeData.leadsPerRegion).map(([country, leads]) => (
+                        <div key={country} className="flex justify-between p-2 bg-muted/50 rounded text-sm">
+                          <span>{country}:</span>
+                          <span className="font-medium">{leads}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Questions */}
+                {selectedProject.scopeData.hasCustomQuestions && selectedProject.scopeData.customQuestions.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Custom Questions</h4>
+                    {selectedProject.scopeData.customQuestions.map((cq, index) => (
+                      <div key={index} className="p-3 bg-muted/50 rounded space-y-2">
+                        <p className="font-medium text-sm">Q{index + 1}: {cq.question}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {cq.options.map((opt, optIndex) => (
+                            <Badge key={optIndex} variant="outline" className="text-xs">
+                              {opt}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Target Audience */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Target Audience</h4>
+                    <p className="text-sm text-muted-foreground">{selectedProject.scopeData.targetAudience || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Job Titles</h4>
+                    <p className="text-sm text-muted-foreground">{selectedProject.scopeData.jobTitles || '-'}</p>
+                  </div>
+                </div>
+
+                {/* Employee Size */}
+                {selectedProject.scopeData.employeeSizeRanges.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Employee Size</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProject.scopeData.employeeSizeRanges.map((size) => (
+                        <Badge key={size} variant="secondary">{size}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Industry & Revenue */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Industry</h4>
+                    <p className="text-sm text-muted-foreground">{selectedProject.scopeData.industry || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Revenue</h4>
+                    <p className="text-sm text-muted-foreground">{selectedProject.scopeData.revenue || '-'}</p>
+                  </div>
+                </div>
+
+                {/* Technology & Contacts */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Installed Technology Base</h4>
+                    <p className="text-sm text-muted-foreground">{selectedProject.scopeData.installedTechBase || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Contact Per Company</h4>
+                    <p className="text-sm text-muted-foreground">{selectedProject.scopeData.contactPerCompany || '-'}</p>
+                  </div>
+                </div>
+
+                {/* Suppression List */}
+                <div className="space-y-1">
+                  <h4 className="font-medium text-sm">Suppression List (Email/Domain/Company)</h4>
+                  <p className="text-sm text-muted-foreground">{selectedProject.scopeData.suppressionList || 'None'}</p>
+                </div>
+
+                {/* Accepted Company List */}
+                <div className="space-y-1">
+                  <h4 className="font-medium text-sm">Accepted Company List</h4>
+                  <div className="flex items-center gap-2">
+                    {selectedProject.scopeData.hasAcceptedCompanyList === 'yes' ? (
+                      <Badge variant="default"><Check className="h-3 w-3 mr-1" /> Yes</Badge>
+                    ) : selectedProject.scopeData.hasAcceptedCompanyList === 'no' ? (
+                      <Badge variant="outline"><X className="h-3 w-3 mr-1" /> No</Badge>
+                    ) : (
+                      <Badge variant="secondary">None</Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Telemarketing */}
+                <div className="space-y-1">
+                  <h4 className="font-medium text-sm">Is this a Telemarketing Project?</h4>
+                  <div className="flex items-center gap-2">
+                    {selectedProject.scopeData.isTelemarketing === 'yes' ? (
+                      <Badge variant="default"><Check className="h-3 w-3 mr-1" /> Yes</Badge>
+                    ) : (
+                      <Badge variant="outline"><X className="h-3 w-3 mr-1" /> No</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
