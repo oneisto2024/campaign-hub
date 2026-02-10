@@ -51,7 +51,7 @@ interface FieldMapping {
   isMergeTag: boolean;
 }
 
-interface ValidationMerge {
+interface ValidationTerms {
   valid: string;
   catchAll: string;
   unknown: string;
@@ -102,12 +102,20 @@ const DBImport = () => {
   const [detectedFields, setDetectedFields] = useState<string[]>([]);
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
   const [isValidationDone, setIsValidationDone] = useState<'yes' | 'no' | ''>('');
-  const [validationMerge, setValidationMerge] = useState<ValidationMerge>({
-    valid: '', catchAll: '', unknown: '', invalid: '',
+
+  // Step 1: Validation status field + term mapping
+  const [validationStatusField, setValidationStatusField] = useState('');
+  const [validationTerms, setValidationTerms] = useState({
+    valid: '',
+    catchAll: '',
+    unknown: '',
+    invalid: '',
   });
 
   // Step 3: Suppression
   const [suppressionType, setSuppressionType] = useState<'domain' | 'email' | ''>('');
+  const [suppressionFile, setSuppressionFile] = useState<File | null>(null);
+  const [suppressionDetectedFields, setSuppressionDetectedFields] = useState<string[]>([]);
   const [suppressionFieldMapping, setSuppressionFieldMapping] = useState('');
 
   // Publish confirmation
@@ -156,8 +164,11 @@ const DBImport = () => {
     setDetectedFields([]);
     setFieldMappings([]);
     setIsValidationDone('');
-    setValidationMerge({ valid: '', catchAll: '', unknown: '', invalid: '' });
+    setValidationStatusField('');
+    setValidationTerms({ valid: '', catchAll: '', unknown: '', invalid: '' });
     setSuppressionType('');
+    setSuppressionFile(null);
+    setSuppressionDetectedFields([]);
     setSuppressionFieldMapping('');
   };
 
@@ -176,11 +187,23 @@ const DBImport = () => {
     setImportStep(2);
   };
 
+  const handleSuppressionFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSuppressionFile(file);
+    const mockFields = ['domain_name', 'email_address', 'company', 'reason'];
+    setSuppressionDetectedFields(mockFields);
+    setSuppressionFieldMapping('');
+  };
+
   const completeStep2 = () => {
     if (isValidationDone === 'yes') {
-      // Check all merge fields are mapped
-      if (!validationMerge.valid || !validationMerge.catchAll || !validationMerge.unknown || !validationMerge.invalid) {
-        toast({ title: 'Map all validation categories', variant: 'destructive' });
+      if (!validationStatusField) {
+        toast({ title: 'Select the status field', variant: 'destructive' });
+        return;
+      }
+      if (!validationTerms.valid || !validationTerms.catchAll || !validationTerms.unknown || !validationTerms.invalid) {
+        toast({ title: 'Map all validation status terms', variant: 'destructive' });
         return;
       }
     }
@@ -191,6 +214,10 @@ const DBImport = () => {
   };
 
   const completeStep3 = () => {
+    if (!suppressionFile) {
+      toast({ title: 'Please upload a suppression file', variant: 'destructive' });
+      return;
+    }
     if (!suppressionType) {
       toast({ title: 'Select suppression type', variant: 'destructive' });
       return;
@@ -399,16 +426,28 @@ const DBImport = () => {
                 </div>
 
                 {detectedFields.length > 0 && (
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="font-medium text-sm">Map Fields to Contact Properties</h4>
-                      <p className="text-xs text-destructive">One field must be mapped to "Email" to proceed.</p>
-                    </div>
+                  <div className="space-y-5">
+                    {/* Section 1: Detected fields */}
                     <div className="space-y-2">
-                      {fieldMappings.map((mapping, index) => (
-                        <div key={index} className="flex items-center gap-3 p-2 bg-muted/30 rounded">
-                          <span className="text-sm font-mono w-40 truncate">{mapping.sourceField}</span>
-                          <span className="text-muted-foreground">→</span>
+                      <h4 className="font-semibold text-base">Fields Detected From Your File</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {detectedFields.map((field) => (
+                          <Badge key={field} variant="secondary" className="font-mono text-xs">{field}</Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section 2: Map fields */}
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="font-semibold text-base">Map Fields to Contact Properties</h4>
+                        <p className="text-sm text-muted-foreground">Choose a contact list property for each field. One field must be mapped to "Email" to proceed.</p>
+                      </div>
+                      <div className="space-y-2">
+                        {fieldMappings.map((mapping, index) => (
+                          <div key={index} className="flex items-center gap-3 p-2 bg-muted/30 rounded">
+                            <span className="text-sm font-mono w-40 truncate">{mapping.sourceField}</span>
+                            <span className="text-muted-foreground">→</span>
                           <Select
                             value={mapping.mappedTo && !mapping.isMergeTag ? mapping.mappedTo : ''}
                             onValueChange={(v) => updateFieldMapping(index, v)}
@@ -441,8 +480,9 @@ const DBImport = () => {
                     </div>
 
                     {/* Validation question */}
-                    <div className="space-y-2 pt-4 border-t">
-                      <Label>Is the validation done?</Label>
+                    <div className="space-y-3 pt-4 border-t">
+                      <h4 className="font-semibold text-base">Validation Status</h4>
+                      <Label>Is the validation already done for this data?</Label>
                       <RadioGroup value={isValidationDone} onValueChange={(v) => setIsValidationDone(v as 'yes' | 'no')}>
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
@@ -457,28 +497,56 @@ const DBImport = () => {
                       </RadioGroup>
 
                       {isValidationDone === 'yes' && (
-                        <div className="space-y-3 pl-4 border-l-2 border-primary/30 mt-3">
-                          <p className="text-sm text-muted-foreground">
-                            Merge the validation status fields from your list:
-                          </p>
-                          {(['valid', 'catchAll', 'unknown', 'invalid'] as const).map((category) => (
-                            <div key={category} className="flex items-center gap-3">
-                              <span className="text-sm w-24 capitalize">{category === 'catchAll' ? 'Catch-All' : category}:</span>
-                              <Select
-                                value={validationMerge[category]}
-                                onValueChange={(v) => setValidationMerge({ ...validationMerge, [category]: v })}
-                              >
-                                <SelectTrigger className="w-48">
-                                  <SelectValue placeholder="Map field" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {detectedFields.map((f) => (
-                                    <SelectItem key={f} value={f}>{f}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                        <div className="space-y-4 pl-4 border-l-2 border-primary/30 mt-3">
+                          {/* Step A: Pick the status column */}
+                          <div className="space-y-2">
+                            <Label className="font-medium">Which field/column contains the validation status?</Label>
+                            <Select value={validationStatusField} onValueChange={setValidationStatusField}>
+                              <SelectTrigger className="w-64">
+                                <SelectValue placeholder="Select status field" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {detectedFields.map((f) => (
+                                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Step B: Map terms from that column to our categories */}
+                          {validationStatusField && (
+                            <div className="space-y-3">
+                              <div>
+                                <Label className="font-medium">Map status terms to validation categories</Label>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Tell us which value in your "{validationStatusField}" column corresponds to each category.
+                                </p>
+                              </div>
+                              <div className="grid gap-3">
+                                {[
+                                  { key: 'valid' as const, label: 'Valid', hint: 'e.g. "safe", "deliverable", "valid"' },
+                                  { key: 'catchAll' as const, label: 'Catch-All', hint: 'e.g. "catch-all", "accept-all"' },
+                                  { key: 'unknown' as const, label: 'Unknown', hint: 'e.g. "unknown", "unverifiable"' },
+                                  { key: 'invalid' as const, label: 'Invalid', hint: 'e.g. "disposable", "undeliverable", "invalid"' },
+                                ].map(({ key, label, hint }) => (
+                                  <div key={key} className="flex items-start gap-3 p-3 bg-muted/30 rounded">
+                                    <div className="w-28 shrink-0">
+                                      <span className="text-sm font-medium">{label}</span>
+                                    </div>
+                                    <div className="flex-1 space-y-1">
+                                      <Input
+                                        value={validationTerms[key]}
+                                        onChange={(e) => setValidationTerms({ ...validationTerms, [key]: e.target.value })}
+                                        placeholder={hint}
+                                        className="h-8 text-sm"
+                                      />
+                                      <p className="text-xs text-muted-foreground">{hint}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          ))}
+                          )}
                         </div>
                       )}
 
@@ -488,6 +556,7 @@ const DBImport = () => {
                         </p>
                       )}
                     </div>
+                  </div>
                   </div>
                 )}
               </div>
@@ -519,42 +588,71 @@ const DBImport = () => {
             {/* Step 3: Suppression */}
             {importStep === 3 && (
               <div className="space-y-6">
+                {/* Upload suppression file */}
                 <div className="space-y-2">
-                  <Label>Suppression Type</Label>
-                  <p className="text-sm text-muted-foreground">How do you want to apply suppression?</p>
-                  <RadioGroup value={suppressionType} onValueChange={(v) => setSuppressionType(v as 'domain' | 'email')}>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="domain" id="supp-domain" />
-                        <Label htmlFor="supp-domain">By Domain</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="email" id="supp-email" />
-                        <Label htmlFor="supp-email">By Email</Label>
-                      </div>
-                    </div>
-                  </RadioGroup>
+                  <h4 className="font-semibold text-base">Upload Suppression File</h4>
+                  <p className="text-sm text-muted-foreground">Upload a separate file containing your suppression list.</p>
+                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-2">Upload CSV or Excel file</p>
+                    <Input
+                      type="file"
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleSuppressionFileUpload}
+                      className="max-w-xs mx-auto"
+                    />
+                    {suppressionFile && (
+                      <Badge variant="secondary" className="mt-2">{suppressionFile.name}</Badge>
+                    )}
+                  </div>
                 </div>
 
-                {suppressionType && (
-                  <div className="space-y-3">
-                    <Label>Map the {suppressionType} field from your list</Label>
-                    <Select value={suppressionFieldMapping} onValueChange={setSuppressionFieldMapping}>
-                      <SelectTrigger className="w-64">
-                        <SelectValue placeholder={`Select ${suppressionType} field`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {detectedFields.length > 0
-                          ? detectedFields.map((f) => (
+                {suppressionDetectedFields.length > 0 && (
+                  <>
+                    {/* Show detected fields */}
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-base">Fields Detected From Suppression File</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {suppressionDetectedFields.map((field) => (
+                          <Badge key={field} variant="secondary" className="font-mono text-xs">{field}</Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Suppression type */}
+                    <div className="space-y-2">
+                      <Label className="font-medium">Suppress by Domain or Email?</Label>
+                      <RadioGroup value={suppressionType} onValueChange={(v) => setSuppressionType(v as 'domain' | 'email')}>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem value="domain" id="supp-domain" />
+                            <Label htmlFor="supp-domain">By Domain</Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem value="email" id="supp-email" />
+                            <Label htmlFor="supp-email">By Email</Label>
+                          </div>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    {/* Map field */}
+                    {suppressionType && (
+                      <div className="space-y-3">
+                        <Label>Map the {suppressionType} field from your suppression file</Label>
+                        <Select value={suppressionFieldMapping} onValueChange={setSuppressionFieldMapping}>
+                          <SelectTrigger className="w-64">
+                            <SelectValue placeholder={`Select ${suppressionType} field`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {suppressionDetectedFields.map((f) => (
                               <SelectItem key={f} value={f}>{f}</SelectItem>
-                            ))
-                          : CONTACT_PROPERTIES.map((f) => (
-                              <SelectItem key={f} value={f}>{f}</SelectItem>
-                            ))
-                        }
-                      </SelectContent>
-                    </Select>
-                  </div>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
