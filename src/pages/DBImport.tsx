@@ -439,18 +439,23 @@ const DBImport = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col items-center gap-1">
-                        <Badge variant={project.importStatus === 'ready' ? 'default' : 'outline'} className="text-xs">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 ${project.importStatus === 'ready' ? 'text-muted-foreground' : project.importStatus === 'suppressed' ? 'text-primary hover:text-primary' : 'text-muted-foreground'}`}
+                          onClick={() => {
+                            if (project.importStatus === 'suppressed') {
+                              setPublishConfirm(project);
+                            }
+                          }}
+                          disabled={project.importStatus !== 'suppressed'}
+                          title="Publish to Email Data"
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                        <Badge variant={project.importStatus === 'ready' ? 'default' : 'outline'} className="text-[10px] px-1.5 py-0">
                           {getPublishStatus(project)}
                         </Badge>
-                        {project.importStatus === 'suppressed' && (
-                          <Button
-                            size="sm"
-                            onClick={() => setPublishConfirm(project)}
-                          >
-                            <Send className="h-4 w-4 mr-1" />
-                            Publish
-                          </Button>
-                        )}
                       </div>
                     </TableCell>
                   </TableRow>
