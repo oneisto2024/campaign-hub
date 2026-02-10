@@ -17,7 +17,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Upload, Plus, Check, X, Send, FileUp, ShieldCheck, Filter } from 'lucide-react';
+import { Search, Upload, Plus, Check, X, Send, FileUp, ShieldCheck, Filter, Eye } from 'lucide-react';
+import { ScopeData } from './CreateCampaign';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -34,6 +35,9 @@ interface ImportProject {
   projectName: string;
   clientId: string;
   uniqueId: string;
+  projectSummary: string;
+  hasScopeDocument: boolean;
+  scopeData?: ScopeData;
   publishedAt: Date;
   importStatus: 'pending' | 'data-uploaded' | 'validated' | 'suppressed' | 'ready';
   dataUploaded: boolean;
@@ -58,12 +62,27 @@ interface ValidationMerge {
 const MOCK_IMPORT_PROJECTS: ImportProject[] = [
   {
     id: '1', projectName: 'Q1 Lead Generation Campaign', clientId: 'ACME001',
-    uniqueId: 'PRJ-2026-001', publishedAt: new Date('2026-01-12'),
+    uniqueId: 'PRJ-2026-001', projectSummary: 'MQL campaign targeting enterprise clients in APAC region',
+    hasScopeDocument: true, publishedAt: new Date('2026-01-12'),
     importStatus: 'pending', dataUploaded: false, validationDone: false, suppressionDone: false,
   },
   {
     id: '3', projectName: 'ABM Campaign - Fortune 500', clientId: 'GLOB003',
-    uniqueId: 'PRJ-2026-003', publishedAt: new Date('2026-01-19'),
+    uniqueId: 'PRJ-2026-003', projectSummary: 'Account-based marketing for top enterprise accounts',
+    hasScopeDocument: false,
+    scopeData: {
+      countries: ['United States', 'Japan', 'Australia', 'Singapore'],
+      leadsPerRegion: { 'United States': '5000', 'Japan': '2000', 'Australia': '1500', 'Singapore': '1500' },
+      hasCustomQuestions: false, customQuestionsCount: 0, customQuestions: [],
+      targetAudience: 'C-Suite executives at Fortune 500 companies',
+      jobTitles: 'CEO, CFO, CTO, COO',
+      employeeSizeRanges: ['10,000+'],
+      industry: 'All industries', revenue: '$1B+',
+      installedTechBase: 'SAP, Oracle, Salesforce',
+      contactPerCompany: '5', suppressionList: '',
+      hasAcceptedCompanyList: 'yes', acceptedCompanyFile: null, isTelemarketing: 'yes',
+    },
+    publishedAt: new Date('2026-01-19'),
     importStatus: 'pending', dataUploaded: false, validationDone: false, suppressionDone: false,
   },
 ];
@@ -72,7 +91,8 @@ const DBImport = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState<ImportProject[]>(MOCK_IMPORT_PROJECTS);
-
+  const [scopeProject, setScopeProject] = useState<ImportProject | null>(null);
+  const [isScopeDialogOpen, setIsScopeDialogOpen] = useState(false);
   // Import dialog state
   const [activeProject, setActiveProject] = useState<ImportProject | null>(null);
   const [importStep, setImportStep] = useState<1 | 2 | 3>(1);
@@ -236,6 +256,7 @@ const DBImport = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Project Name</TableHead>
+                <TableHead>Project Summary</TableHead>
                 <TableHead>Client ID</TableHead>
                 <TableHead>Unique ID</TableHead>
                 <TableHead>Published At</TableHead>
@@ -257,6 +278,24 @@ const DBImport = () => {
                 filteredProjects.map((project) => (
                   <TableRow key={project.id}>
                     <TableCell className="font-medium">{project.projectName}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground line-clamp-2 max-w-xs">
+                          {project.projectSummary}
+                        </span>
+                        {!project.hasScopeDocument && project.scopeData && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            onClick={() => { setScopeProject(project); setIsScopeDialogOpen(true); }}
+                            title="View scope details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-sm">{project.clientId}</TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">{project.uniqueId}</TableCell>
                     <TableCell>{format(project.publishedAt, 'MMM dd, yyyy')}</TableCell>
@@ -561,6 +600,122 @@ const DBImport = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Scope Data Dialog */}
+      <Dialog open={isScopeDialogOpen} onOpenChange={setIsScopeDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Project Scope Details</DialogTitle>
+          </DialogHeader>
+          {scopeProject?.scopeData && (
+            <ScrollArea className="h-[60vh] pr-4">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Target Countries</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {scopeProject.scopeData.countries.map((country) => (
+                      <Badge key={country} variant="secondary">{country}</Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {Object.keys(scopeProject.scopeData.leadsPerRegion).length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Leads Per Region</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {Object.entries(scopeProject.scopeData.leadsPerRegion).map(([country, leads]) => (
+                        <div key={country} className="flex justify-between p-2 bg-muted/50 rounded text-sm">
+                          <span>{country}:</span>
+                          <span className="font-medium">{leads}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {scopeProject.scopeData.hasCustomQuestions && scopeProject.scopeData.customQuestions.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Custom Questions</h4>
+                    {scopeProject.scopeData.customQuestions.map((cq, index) => (
+                      <div key={index} className="p-3 bg-muted/50 rounded space-y-2">
+                        <p className="font-medium text-sm">Q{index + 1}: {cq.question}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {cq.options.map((opt, optIndex) => (
+                            <Badge key={optIndex} variant="outline" className="text-xs">{opt}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Target Audience</h4>
+                    <p className="text-sm text-muted-foreground">{scopeProject.scopeData.targetAudience || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Job Titles</h4>
+                    <p className="text-sm text-muted-foreground">{scopeProject.scopeData.jobTitles || '-'}</p>
+                  </div>
+                </div>
+
+                {scopeProject.scopeData.employeeSizeRanges.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Employee Size</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {scopeProject.scopeData.employeeSizeRanges.map((size) => (
+                        <Badge key={size} variant="secondary">{size}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Industry</h4>
+                    <p className="text-sm text-muted-foreground">{scopeProject.scopeData.industry || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Revenue</h4>
+                    <p className="text-sm text-muted-foreground">{scopeProject.scopeData.revenue || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Installed Technology Base</h4>
+                    <p className="text-sm text-muted-foreground">{scopeProject.scopeData.installedTechBase || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">Contact Per Company</h4>
+                    <p className="text-sm text-muted-foreground">{scopeProject.scopeData.contactPerCompany || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="font-medium text-sm">Suppression List</h4>
+                  <p className="text-sm text-muted-foreground">{scopeProject.scopeData.suppressionList || 'None'}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="font-medium text-sm">Accepted Company List</h4>
+                  <Badge variant={scopeProject.scopeData.hasAcceptedCompanyList === 'yes' ? 'default' : 'outline'}>
+                    {scopeProject.scopeData.hasAcceptedCompanyList === 'yes' ? 'Yes' : scopeProject.scopeData.hasAcceptedCompanyList === 'no' ? 'No' : 'None'}
+                  </Badge>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="font-medium text-sm">Telemarketing Project</h4>
+                  <Badge variant={scopeProject.scopeData.isTelemarketing === 'yes' ? 'default' : 'outline'}>
+                    {scopeProject.scopeData.isTelemarketing === 'yes' ? 'Yes' : 'No'}
+                  </Badge>
+                </div>
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
