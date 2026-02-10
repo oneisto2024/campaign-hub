@@ -131,14 +131,32 @@ const DBImport = () => {
     );
   }, [projects, searchQuery]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const parseCSVHeaders = (file: File): Promise<string[]> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        if (!text) { resolve([]); return; }
+        const firstLine = text.split(/\r?\n/)[0];
+        const headers = firstLine.split(',').map(h => h.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+        resolve(headers);
+      };
+      reader.onerror = () => resolve([]);
+      reader.readAsText(file);
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadedFile(file);
-    // Simulate detecting CSV/Excel headers
-    const mockFields = ['email_address', 'first_name', 'last_name', 'company_name', 'title', 'phone_number', 'country', 'industry_type', 'linkedin'];
-    setDetectedFields(mockFields);
-    setFieldMappings(mockFields.map(f => ({ sourceField: f, mappedTo: '', isMergeTag: false })));
+    const headers = await parseCSVHeaders(file);
+    if (headers.length === 0) {
+      toast({ title: 'Could not detect headers from file', variant: 'destructive' });
+      return;
+    }
+    setDetectedFields(headers);
+    setFieldMappings(headers.map(f => ({ sourceField: f, mappedTo: '', isMergeTag: false })));
   };
 
   const updateFieldMapping = (index: number, value: string) => {
@@ -187,12 +205,16 @@ const DBImport = () => {
     setImportStep(2);
   };
 
-  const handleSuppressionFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSuppressionFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setSuppressionFile(file);
-    const mockFields = ['domain_name', 'email_address', 'company', 'reason'];
-    setSuppressionDetectedFields(mockFields);
+    const headers = await parseCSVHeaders(file);
+    if (headers.length === 0) {
+      toast({ title: 'Could not detect headers from suppression file', variant: 'destructive' });
+      return;
+    }
+    setSuppressionDetectedFields(headers);
     setSuppressionFieldMapping('');
   };
 
