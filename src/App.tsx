@@ -13,6 +13,7 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import CreateClient from "./pages/CreateClient";
 import CreateCampaign from "./pages/CreateCampaign";
 import AllProjects from "./pages/AllProjects";
+import DBImport from "./pages/DBImport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,7 +41,7 @@ const App = () => (
               <Route path="/project-initiator/all-projects" element={<AllProjects />} />
               
               {/* DB Import */}
-              <Route path="/db-import/all-campaigns" element={<PlaceholderPage />} />
+              <Route path="/db-import/all-campaigns" element={<DBImport />} />
               
               {/* Email Data */}
               <Route path="/email-data/all-content" element={<PlaceholderPage />} />

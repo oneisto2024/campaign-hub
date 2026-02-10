@@ -26,8 +26,18 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Settings2, Eye, Trash2, Edit, Plus, Check, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, Settings2, Eye, Trash2, Edit, Plus, Check, X, Send } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ScopeData } from './CreateCampaign';
 
@@ -208,11 +218,13 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
 ];
 
 const AllProjects = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
-  const [projects] = useState<Project[]>(MOCK_PROJECTS);
+  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isScopeDialogOpen, setIsScopeDialogOpen] = useState(false);
+  const [publishProject, setPublishProject] = useState<Project | null>(null);
 
   const toggleColumn = (key: string) => {
     setColumns(columns.map(col => 
@@ -320,6 +332,17 @@ const AllProjects = () => {
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Edit className="h-4 w-4" />
             </Button>
+            {project.status !== 'completed' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-primary hover:text-primary"
+                onClick={() => setPublishProject(project)}
+                title="Publish to DB Import"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -418,6 +441,34 @@ const AllProjects = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Publish Confirmation Dialog */}
+      <AlertDialog open={!!publishProject} onOpenChange={(open) => !open && setPublishProject(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publish to DB Import</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will publish <strong>{publishProject?.projectName}</strong> to the DB Import module. The project's basic info will be locked and it will move to the data import stage.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (publishProject) {
+                setProjects(projects.map(p => 
+                  p.id === publishProject.id 
+                    ? { ...p, status: 'active' as const, publishedAt: new Date() } 
+                    : p
+                ));
+                navigate('/db-import/all-campaigns');
+              }
+              setPublishProject(null);
+            }}>
+              Publish
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Scope Data Dialog */}
       <Dialog open={isScopeDialogOpen} onOpenChange={setIsScopeDialogOpen}>
