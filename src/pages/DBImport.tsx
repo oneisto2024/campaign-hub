@@ -23,8 +23,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
-// Contact list property options for field mapping
-const CONTACT_PROPERTIES = [
+// Default contact properties for field mapping (left column)
+const DEFAULT_CONTACT_PROPERTIES = [
   'Email', 'First Name', 'Last Name', 'Company', 'Job Title', 'Phone',
   'Address', 'City', 'State', 'Country', 'Zip Code', 'Industry',
   'Revenue', 'Employee Size', 'Website', 'LinkedIn URL',
@@ -46,9 +46,10 @@ interface ImportProject {
 }
 
 interface FieldMapping {
-  sourceField: string;
+  propertyName: string;
   mappedTo: string;
   isMergeTag: boolean;
+  isCustom?: boolean;
 }
 
 interface ValidationTerms {
@@ -102,15 +103,17 @@ const DBImport = () => {
   const [detectedFields, setDetectedFields] = useState<string[]>([]);
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
   const [isValidationDone, setIsValidationDone] = useState<'yes' | 'no' | ''>('');
+  const [customFieldName, setCustomFieldName] = useState('');
 
   // Step 1: Validation status field + term mapping
   const [validationStatusField, setValidationStatusField] = useState('');
-  const [validationTerms, setValidationTerms] = useState({
+  const [validationTerms, setValidationTerms] = useState<ValidationTerms>({
     valid: '',
     catchAll: '',
     unknown: '',
     invalid: '',
   });
+  const [statusColumnValues, setStatusColumnValues] = useState<string[]>([]);
 
   // Step 3: Suppression
   const [suppressionType, setSuppressionType] = useState<'domain' | 'email' | ''>('');
@@ -120,6 +123,9 @@ const DBImport = () => {
 
   // Publish confirmation
   const [publishConfirm, setPublishConfirm] = useState<ImportProject | null>(null);
+
+  // Store full CSV data for column value extraction
+  const [csvData, setCsvData] = useState<string[][]>([]);
 
   const filteredProjects = useMemo(() => {
     if (!searchQuery) return projects;
@@ -131,32 +137,49 @@ const DBImport = () => {
     );
   }, [projects, searchQuery]);
 
-  const parseCSVHeaders = (file: File): Promise<string[]> => {
+  const parseCSV = (file: File): Promise<{ headers: string[]; rows: string[][] }> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const text = event.target?.result as string;
-        if (!text) { resolve([]); return; }
-        const firstLine = text.split(/\r?\n/)[0];
-        const headers = firstLine.split(',').map(h => h.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-        resolve(headers);
+        if (!text) { resolve({ headers: [], rows: [] }); return; }
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+        const rows = lines.slice(1).map(line =>
+          line.split(',').map(c => c.trim().replace(/^["']|["']$/g, ''))
+        );
+        resolve({ headers, rows });
       };
-      reader.onerror = () => resolve([]);
+      reader.onerror = () => resolve({ headers: [], rows: [] });
       reader.readAsText(file);
     });
+  };
+
+  const getUniqueColumnValues = (columnName: string): string[] => {
+    const colIndex = detectedFields.indexOf(columnName);
+    if (colIndex === -1) return [];
+    const values = new Set<string>();
+    csvData.forEach(row => {
+      if (row[colIndex] && row[colIndex].trim()) {
+        values.add(row[colIndex].trim());
+      }
+    });
+    return Array.from(values).sort();
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadedFile(file);
-    const headers = await parseCSVHeaders(file);
+    const { headers, rows } = await parseCSV(file);
     if (headers.length === 0) {
       toast({ title: 'Could not detect headers from file', variant: 'destructive' });
       return;
     }
     setDetectedFields(headers);
-    setFieldMappings(headers.map(f => ({ sourceField: f, mappedTo: '', isMergeTag: false })));
+    setCsvData(rows);
+    // Initialize mappings: default properties on left, empty mapping on right
+    setFieldMappings(DEFAULT_CONTACT_PROPERTIES.map(prop => ({ propertyName: prop, mappedTo: '', isMergeTag: false })));
   };
 
   const updateFieldMapping = (index: number, value: string) => {
@@ -167,12 +190,42 @@ const DBImport = () => {
 
   const createMergeTag = (index: number) => {
     const updated = [...fieldMappings];
-    updated[index] = { ...updated[index], mappedTo: updated[index].sourceField, isMergeTag: true };
+    updated[index] = { ...updated[index], isMergeTag: true };
     setFieldMappings(updated);
-    toast({ title: `Merge tag created for "${updated[index].sourceField}"` });
+    toast({ title: `Merge tag created for "${updated[index].propertyName}"` });
   };
 
-  const hasEmailMapping = fieldMappings.some(m => m.mappedTo === 'Email');
+  const addCustomField = () => {
+    if (!customFieldName.trim()) return;
+    if (fieldMappings.some(m => m.propertyName === customFieldName.trim())) {
+      toast({ title: 'Field already exists', variant: 'destructive' });
+      return;
+    }
+    setFieldMappings([...fieldMappings, { propertyName: customFieldName.trim(), mappedTo: '', isMergeTag: false, isCustom: true }]);
+    setCustomFieldName('');
+    toast({ title: `Custom field "${customFieldName.trim()}" added` });
+  };
+
+  const removeCustomField = (index: number) => {
+    setFieldMappings(fieldMappings.filter((_, i) => i !== index));
+  };
+
+  const hasEmailMapping = fieldMappings.some(m => m.propertyName === 'Email' && m.mappedTo);
+
+  const handleValidationStatusFieldChange = (field: string) => {
+    setValidationStatusField(field);
+    setValidationTerms({ valid: '', catchAll: '', unknown: '', invalid: '' });
+    // Extract unique values from that column
+    const colIndex = detectedFields.indexOf(field);
+    if (colIndex === -1) { setStatusColumnValues([]); return; }
+    const values = new Set<string>();
+    csvData.forEach(row => {
+      if (row[colIndex] && row[colIndex].trim()) {
+        values.add(row[colIndex].trim());
+      }
+    });
+    setStatusColumnValues(Array.from(values).sort());
+  };
 
   const openImportDialog = (project: ImportProject) => {
     setActiveProject(project);
@@ -181,13 +234,16 @@ const DBImport = () => {
     setUploadedFile(null);
     setDetectedFields([]);
     setFieldMappings([]);
+    setCsvData([]);
     setIsValidationDone('');
     setValidationStatusField('');
     setValidationTerms({ valid: '', catchAll: '', unknown: '', invalid: '' });
+    setStatusColumnValues([]);
     setSuppressionType('');
     setSuppressionFile(null);
     setSuppressionDetectedFields([]);
     setSuppressionFieldMapping('');
+    setCustomFieldName('');
   };
 
   const completeStep1 = () => {
@@ -196,7 +252,7 @@ const DBImport = () => {
       return;
     }
     if (!hasEmailMapping) {
-      toast({ title: 'One field must be mapped to "Email"', variant: 'destructive' });
+      toast({ title: '"Email" must be mapped to a field from your file', variant: 'destructive' });
       return;
     }
     setProjects(projects.map(p =>
@@ -209,7 +265,7 @@ const DBImport = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setSuppressionFile(file);
-    const headers = await parseCSVHeaders(file);
+    const { headers } = await parseCSV(file);
     if (headers.length === 0) {
       toast({ title: 'Could not detect headers from suppression file', variant: 'destructive' });
       return;
@@ -278,6 +334,11 @@ const DBImport = () => {
     return <Badge variant={s.variant}>{s.label}</Badge>;
   };
 
+  const getPublishStatus = (project: ImportProject) => {
+    if (project.importStatus === 'ready') return 'Completed';
+    return 'Pending';
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -314,12 +375,13 @@ const DBImport = () => {
                 <TableHead>Suppression</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
+                <TableHead>Publish</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProjects.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                     No campaigns in import queue
                   </TableCell>
                 </TableRow>
@@ -365,16 +427,21 @@ const DBImport = () => {
                     </TableCell>
                     <TableCell>{getStatusBadge(project)}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openImportDialog(project)}
-                          disabled={project.importStatus === 'ready'}
-                        >
-                          <FileUp className="h-4 w-4 mr-1" />
-                          Import
-                        </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openImportDialog(project)}
+                        disabled={project.importStatus === 'ready'}
+                      >
+                        <FileUp className="h-4 w-4 mr-1" />
+                        Import
+                      </Button>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col items-center gap-1">
+                        <Badge variant={project.importStatus === 'ready' ? 'default' : 'outline'} className="text-xs">
+                          {getPublishStatus(project)}
+                        </Badge>
                         {project.importStatus === 'suppressed' && (
                           <Button
                             size="sm"
@@ -459,47 +526,67 @@ const DBImport = () => {
                       </div>
                     </div>
 
-                    {/* Section 2: Map fields */}
+                    {/* Section 2: Map fields - Default properties on left, CSV dropdown on right */}
                     <div className="space-y-3">
                       <div>
                         <h4 className="font-semibold text-base">Map Fields to Contact Properties</h4>
-                        <p className="text-sm text-muted-foreground">Choose a contact list property for each field. One field must be mapped to "Email" to proceed.</p>
+                        <p className="text-sm text-muted-foreground">Map each contact property to a field from your uploaded file. "Email" is required.</p>
                       </div>
                       <div className="space-y-2">
                         {fieldMappings.map((mapping, index) => (
                           <div key={index} className="flex items-center gap-3 p-2 bg-muted/30 rounded">
-                            <span className="text-sm font-mono w-40 truncate">{mapping.sourceField}</span>
+                            <span className="text-sm font-medium w-40 truncate">{mapping.propertyName}</span>
                             <span className="text-muted-foreground">→</span>
-                          <Select
-                            value={mapping.mappedTo && !mapping.isMergeTag ? mapping.mappedTo : ''}
-                            onValueChange={(v) => updateFieldMapping(index, v)}
-                          >
-                            <SelectTrigger className="w-48">
-                              <SelectValue placeholder="Select property" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CONTACT_PROPERTIES.map((prop) => (
-                                <SelectItem key={prop} value={prop}>{prop}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <span className="text-muted-foreground text-xs">or</span>
-                          <Button
-                            variant={mapping.isMergeTag ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => createMergeTag(index)}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Merge Tag
-                          </Button>
-                          {mapping.isMergeTag && (
-                            <Badge variant="secondary" className="text-xs">
-                              {`{{${mapping.sourceField}}}`}
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                            <Select
+                              value={mapping.mappedTo && !mapping.isMergeTag ? mapping.mappedTo : ''}
+                              onValueChange={(v) => updateFieldMapping(index, v)}
+                            >
+                              <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Select field" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {detectedFields.map((f) => (
+                                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-muted-foreground text-xs">or</span>
+                            <Button
+                              variant={mapping.isMergeTag ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => createMergeTag(index)}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Merge Tag
+                            </Button>
+                            {mapping.isMergeTag && (
+                              <Badge variant="secondary" className="text-xs">
+                                {`{{${mapping.propertyName}}}`}
+                              </Badge>
+                            )}
+                            {mapping.isCustom && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeCustomField(index)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add custom field */}
+                      <div className="flex items-center gap-2 pt-2">
+                        <Input
+                          value={customFieldName}
+                          onChange={(e) => setCustomFieldName(e.target.value)}
+                          placeholder="Add custom field name..."
+                          className="w-48 h-8 text-sm"
+                          onKeyDown={(e) => e.key === 'Enter' && addCustomField()}
+                        />
+                        <Button variant="outline" size="sm" onClick={addCustomField} disabled={!customFieldName.trim()}>
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Field
+                        </Button>
+                      </div>
 
                     {/* Validation question */}
                     <div className="space-y-3 pt-4 border-t">
@@ -523,7 +610,7 @@ const DBImport = () => {
                           {/* Step A: Pick the status column */}
                           <div className="space-y-2">
                             <Label className="font-medium">Which field/column contains the validation status?</Label>
-                            <Select value={validationStatusField} onValueChange={setValidationStatusField}>
+                            <Select value={validationStatusField} onValueChange={handleValidationStatusFieldChange}>
                               <SelectTrigger className="w-64">
                                 <SelectValue placeholder="Select status field" />
                               </SelectTrigger>
@@ -535,39 +622,47 @@ const DBImport = () => {
                             </Select>
                           </div>
 
-                          {/* Step B: Map terms from that column to our categories */}
-                          {validationStatusField && (
+                          {/* Step B: Map terms from that column to our categories using dropdowns */}
+                          {validationStatusField && statusColumnValues.length > 0 && (
                             <div className="space-y-3">
                               <div>
                                 <Label className="font-medium">Map status terms to validation categories</Label>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Tell us which value in your "{validationStatusField}" column corresponds to each category.
+                                  Select which value in your "{validationStatusField}" column corresponds to each category.
                                 </p>
                               </div>
                               <div className="grid gap-3">
                                 {[
-                                  { key: 'valid' as const, label: 'Valid', hint: 'e.g. "safe", "deliverable", "valid"' },
-                                  { key: 'catchAll' as const, label: 'Catch-All', hint: 'e.g. "catch-all", "accept-all"' },
-                                  { key: 'unknown' as const, label: 'Unknown', hint: 'e.g. "unknown", "unverifiable"' },
-                                  { key: 'invalid' as const, label: 'Invalid', hint: 'e.g. "disposable", "undeliverable", "invalid"' },
-                                ].map(({ key, label, hint }) => (
-                                  <div key={key} className="flex items-start gap-3 p-3 bg-muted/30 rounded">
+                                  { key: 'valid' as const, label: 'Valid' },
+                                  { key: 'catchAll' as const, label: 'Catch-All' },
+                                  { key: 'unknown' as const, label: 'Unknown' },
+                                  { key: 'invalid' as const, label: 'Invalid' },
+                                ].map(({ key, label }) => (
+                                  <div key={key} className="flex items-center gap-3 p-3 bg-muted/30 rounded">
                                     <div className="w-28 shrink-0">
                                       <span className="text-sm font-medium">{label}</span>
                                     </div>
-                                    <div className="flex-1 space-y-1">
-                                      <Input
-                                        value={validationTerms[key]}
-                                        onChange={(e) => setValidationTerms({ ...validationTerms, [key]: e.target.value })}
-                                        placeholder={hint}
-                                        className="h-8 text-sm"
-                                      />
-                                      <p className="text-xs text-muted-foreground">{hint}</p>
-                                    </div>
+                                    <Select
+                                      value={validationTerms[key]}
+                                      onValueChange={(v) => setValidationTerms({ ...validationTerms, [key]: v })}
+                                    >
+                                      <SelectTrigger className="flex-1">
+                                        <SelectValue placeholder={`Select value for ${label}`} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {statusColumnValues.map((val) => (
+                                          <SelectItem key={val} value={val}>{val}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                 ))}
                               </div>
                             </div>
+                          )}
+
+                          {validationStatusField && statusColumnValues.length === 0 && (
+                            <p className="text-sm text-muted-foreground">No values found in the "{validationStatusField}" column.</p>
                           )}
                         </div>
                       )}
