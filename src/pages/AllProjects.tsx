@@ -66,6 +66,7 @@ interface Project {
   deleteFile: boolean;
   createdAt: Date;
   publishedAt: Date | null;
+  publishStatus: 'pending' | 'completed';
 }
 
 // Mock data for demonstration
@@ -89,6 +90,7 @@ const MOCK_PROJECTS: Project[] = [
     deleteFile: false,
     createdAt: new Date('2026-01-10'),
     publishedAt: new Date('2026-01-12'),
+    publishStatus: 'pending',
   },
   {
     id: '2',
@@ -130,6 +132,7 @@ const MOCK_PROJECTS: Project[] = [
     deleteFile: false,
     createdAt: new Date('2026-01-20'),
     publishedAt: null,
+    publishStatus: 'pending',
   },
   {
     id: '3',
@@ -168,6 +171,7 @@ const MOCK_PROJECTS: Project[] = [
     deleteFile: false,
     createdAt: new Date('2026-01-18'),
     publishedAt: new Date('2026-01-19'),
+    publishStatus: 'pending',
   },
   {
     id: '4',
@@ -188,6 +192,7 @@ const MOCK_PROJECTS: Project[] = [
     deleteFile: true,
     createdAt: new Date('2025-10-25'),
     publishedAt: new Date('2025-10-28'),
+    publishStatus: 'pending',
   },
 ];
 
@@ -215,6 +220,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'createdAt', label: 'Created At', visible: false },
   { key: 'publishedAt', label: 'Published At', visible: false },
   { key: 'actions', label: 'Actions', visible: true },
+  { key: 'publishStatus' as any, label: 'Publish', visible: true },
 ];
 
 const AllProjects = () => {
@@ -332,20 +338,31 @@ const AllProjects = () => {
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Edit className="h-4 w-4" />
             </Button>
-            {project.status !== 'completed' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-primary hover:text-primary"
-                onClick={() => setPublishProject(project)}
-                title="Publish to DB Import"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            )}
             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
               <Trash2 className="h-4 w-4" />
             </Button>
+          </div>
+        );
+      case 'publishStatus':
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-8 w-8 ${project.publishStatus === 'completed' ? 'text-muted-foreground' : 'text-primary hover:text-primary'}`}
+              onClick={() => {
+                if (project.publishStatus !== 'completed') {
+                  setPublishProject(project);
+                }
+              }}
+              disabled={project.publishStatus === 'completed'}
+              title="Publish to DB Import"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+            <Badge variant={project.publishStatus === 'completed' ? 'default' : 'outline'} className="text-[10px] px-1.5 py-0">
+              {project.publishStatus === 'completed' ? 'Completed' : 'Pending'}
+            </Badge>
           </div>
         );
       default:
@@ -457,10 +474,9 @@ const AllProjects = () => {
               if (publishProject) {
                 setProjects(projects.map(p => 
                   p.id === publishProject.id 
-                    ? { ...p, status: 'active' as const, publishedAt: new Date() } 
+                    ? { ...p, status: 'active' as const, publishedAt: new Date(), publishStatus: 'completed' as const } 
                     : p
                 ));
-                navigate('/db-import/all-campaigns');
               }
               setPublishProject(null);
             }}>
