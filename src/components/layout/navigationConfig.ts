@@ -141,6 +141,7 @@ export const adminGroups: NavGroup[] = [
     icon: Settings,
     items: [
       { title: 'Upload Email Settings', href: '/email-config/upload-settings', icon: Settings },
+      { title: 'Email Validation API', href: '/email-config/validation-api', icon: Shield },
     ],
   },
   {
