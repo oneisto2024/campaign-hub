@@ -11,13 +11,13 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Upload, Plus, Check, X, Send, FileUp, ShieldCheck, Filter, Eye } from 'lucide-react';
+import { Search, Upload, Plus, Check, X, Send, FileUp, ShieldCheck, Filter, Eye, Play, BarChart3, Loader2 } from 'lucide-react';
 import { ScopeData } from './CreateCampaign';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -43,6 +43,8 @@ interface ImportProject {
   dataUploaded: boolean;
   validationDone: boolean;
   suppressionDone: boolean;
+  validationRunStatus: 'pending' | 'in-progress' | 'completed' | 'error';
+  validationStats?: { total: number; valid: number; catchAll: number; unknown: number; invalid: number };
 }
 
 interface FieldMapping {
@@ -66,6 +68,7 @@ const MOCK_IMPORT_PROJECTS: ImportProject[] = [
     uniqueId: 'PRJ-2026-001', projectSummary: 'MQL campaign targeting enterprise clients in APAC region',
     hasScopeDocument: true, publishedAt: new Date('2026-01-12'),
     importStatus: 'pending', dataUploaded: false, validationDone: false, suppressionDone: false,
+    validationRunStatus: 'pending',
   },
   {
     id: '3', projectName: 'ABM Campaign - Fortune 500', clientId: 'GLOB003',
@@ -85,6 +88,7 @@ const MOCK_IMPORT_PROJECTS: ImportProject[] = [
     },
     publishedAt: new Date('2026-01-19'),
     importStatus: 'pending', dataUploaded: false, validationDone: false, suppressionDone: false,
+    validationRunStatus: 'pending',
   },
 ];
 
@@ -123,6 +127,9 @@ const DBImport = () => {
 
   // Publish confirmation
   const [publishConfirm, setPublishConfirm] = useState<ImportProject | null>(null);
+
+  // Validation run & stats
+  const [statsProject, setStatsProject] = useState<ImportProject | null>(null);
 
   // Store full CSV data for column value extraction
   const [csvData, setCsvData] = useState<string[][]>([]);
@@ -322,6 +329,49 @@ const DBImport = () => {
     }
   };
 
+  const triggerValidation = (project: ImportProject) => {
+    if (!project.dataUploaded) {
+      toast({ title: 'Upload data first before running validation', variant: 'destructive' });
+      return;
+    }
+    // Set to in-progress
+    setProjects(prev => prev.map(p =>
+      p.id === project.id ? { ...p, validationRunStatus: 'in-progress' as const } : p
+    ));
+    // Simulate API call - show error since API is not configured
+    setTimeout(() => {
+      setProjects(prev => prev.map(p =>
+        p.id === project.id ? { ...p, validationRunStatus: 'error' as const } : p
+      ));
+      toast({
+        title: 'Validation API Error',
+        description: 'Could not connect to validation service. Please reach out to the admin to configure the Email Validation API under Email Config.',
+        variant: 'destructive',
+      });
+    }, 2000);
+  };
+
+  const getValidationRunIcon = (status: string) => {
+    switch (status) {
+      case 'pending': return <Play className="h-4 w-4" />;
+      case 'in-progress': return <Loader2 className="h-4 w-4 animate-spin" />;
+      case 'completed': return <Check className="h-4 w-4" />;
+      case 'error': return <X className="h-4 w-4" />;
+      default: return <Play className="h-4 w-4" />;
+    }
+  };
+
+  const getValidationRunBadge = (status: string) => {
+    const map: Record<string, { variant: 'default' | 'secondary' | 'outline' | 'destructive'; label: string }> = {
+      'pending': { variant: 'outline', label: 'Pending' },
+      'in-progress': { variant: 'secondary', label: 'In Progress' },
+      'completed': { variant: 'default', label: 'Completed' },
+      'error': { variant: 'destructive', label: 'Error' },
+    };
+    const s = map[status] || map['pending'];
+    return <Badge variant={s.variant} className="text-[10px] px-1.5 py-0">{s.label}</Badge>;
+  };
+
   const getStatusBadge = (project: ImportProject) => {
     const map: Record<string, { variant: 'default' | 'secondary' | 'outline'; label: string }> = {
       'pending': { variant: 'outline', label: 'Pending' },
@@ -416,9 +466,30 @@ const DBImport = () => {
                         : <Badge variant="outline">Pending</Badge>}
                     </TableCell>
                     <TableCell>
-                      {project.validationDone
-                        ? <Badge variant="default"><Check className="h-3 w-3 mr-1" />Done</Badge>
-                        : <Badge variant="outline">Pending</Badge>}
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => triggerValidation(project)}
+                          disabled={!project.dataUploaded || project.validationRunStatus === 'in-progress' || project.validationRunStatus === 'completed'}
+                          title="Run validation"
+                        >
+                          {getValidationRunIcon(project.validationRunStatus)}
+                        </Button>
+                        {project.validationRunStatus === 'completed' && project.validationStats && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setStatsProject(project)}
+                            title="View validation stats"
+                          >
+                            <BarChart3 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {getValidationRunBadge(project.validationRunStatus)}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {project.suppressionDone
@@ -933,6 +1004,42 @@ const DBImport = () => {
                 </div>
               </div>
             </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Validation Stats Dialog */}
+      <Dialog open={!!statsProject} onOpenChange={(open) => !open && setStatsProject(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Validation Results</DialogTitle>
+            <DialogDescription>{statsProject?.projectName}</DialogDescription>
+          </DialogHeader>
+          {statsProject?.validationStats && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-muted/50 rounded text-center">
+                  <p className="text-2xl font-bold">{statsProject.validationStats.total}</p>
+                  <p className="text-xs text-muted-foreground">Total Records</p>
+                </div>
+                <div className="p-3 bg-primary/10 rounded text-center">
+                  <p className="text-2xl font-bold text-primary">{statsProject.validationStats.valid}</p>
+                  <p className="text-xs text-muted-foreground">Valid</p>
+                </div>
+                <div className="p-3 bg-secondary rounded text-center">
+                  <p className="text-2xl font-bold text-secondary-foreground">{statsProject.validationStats.catchAll}</p>
+                  <p className="text-xs text-muted-foreground">Catch-All</p>
+                </div>
+                <div className="p-3 bg-accent rounded text-center">
+                  <p className="text-2xl font-bold text-accent-foreground">{statsProject.validationStats.unknown}</p>
+                  <p className="text-xs text-muted-foreground">Unknown</p>
+                </div>
+              </div>
+              <div className="p-3 bg-destructive/10 rounded text-center">
+                <p className="text-2xl font-bold text-destructive">{statsProject.validationStats.invalid}</p>
+                <p className="text-xs text-muted-foreground">Invalid</p>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>

@@ -14,6 +14,7 @@ import CreateClient from "./pages/CreateClient";
 import CreateCampaign from "./pages/CreateCampaign";
 import AllProjects from "./pages/AllProjects";
 import DBImport from "./pages/DBImport";
+import EmailValidationAPI from "./pages/EmailValidationAPI";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,7 @@ const App = () => (
               
               {/* Email Config */}
               <Route path="/email-config/upload-settings" element={<PlaceholderPage />} />
+              <Route path="/email-config/validation-api" element={<EmailValidationAPI />} />
               
               {/* GDPR */}
               <Route path="/gdpr/search" element={<PlaceholderPage />} />
