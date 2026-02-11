@@ -698,9 +698,9 @@ const DBImport = () => {
                 ) : (
                   <div className="text-center py-8">
                     <ShieldCheck className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                    <h4 className="font-medium">No Validation Required</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      You opted to skip validation. Data was accepted as-is.
+                     <h4 className="font-medium">Validation Skipped</h4>
+                     <p className="text-sm text-muted-foreground mt-1">
+                       Validation was skipped, so the data was accepted as-is. Once the file upload is completed, validation will automatically take place.
                     </p>
                   </div>
                 )}
