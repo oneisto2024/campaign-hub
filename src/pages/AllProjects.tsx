@@ -1,23 +1,7 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Settings2, Eye, Trash2, Edit, Plus, Check, X, Send } from 'lucide-react';
+import { Search, Eye, Trash2, Edit, Plus, Check, X, Send } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
@@ -40,6 +24,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ScopeData } from './CreateCampaign';
+import { useResizableColumns, ColumnDef } from '@/hooks/useResizableColumns';
+import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
 
 interface CustomQuestion {
   question: string;
@@ -196,15 +182,7 @@ const MOCK_PROJECTS: Project[] = [
   },
 ];
 
-interface ColumnConfig {
-  key: keyof Project | 'actions';
-  label: string;
-  visible: boolean;
-  minWidth: number;
-  width: number;
-}
-
-const DEFAULT_COLUMNS: ColumnConfig[] = [
+const ALL_PROJECTS_COLUMNS: ColumnDef[] = [
   { key: 'sNo', label: 'S.No', visible: true, minWidth: 50, width: 60 },
   { key: 'clientId', label: 'Client ID', visible: true, minWidth: 80, width: 110 },
   { key: 'projectName', label: 'Project Name', visible: true, minWidth: 100, width: 200 },
@@ -222,58 +200,17 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'createdAt', label: 'Created At', visible: false, minWidth: 90, width: 120 },
   { key: 'publishedAt', label: 'Published At', visible: false, minWidth: 90, width: 120 },
   { key: 'actions', label: 'Actions', visible: true, minWidth: 100, width: 120 },
-  { key: 'publishStatus' as any, label: 'Publish', visible: true, minWidth: 70, width: 90 },
+  { key: 'publishStatus', label: 'Publish', visible: true, minWidth: 70, width: 90 },
 ];
 
 const AllProjects = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
+  const { columns, visibleColumns, toggleColumn, handleResizeStart } = useResizableColumns(ALL_PROJECTS_COLUMNS);
   const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isScopeDialogOpen, setIsScopeDialogOpen] = useState(false);
   const [publishProject, setPublishProject] = useState<Project | null>(null);
-
-  // Column resize logic
-  const resizingRef = useRef<{ key: string; startX: number; startWidth: number } | null>(null);
-
-  const handleResizeStart = useCallback((e: React.MouseEvent, columnKey: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const col = columns.find(c => c.key === columnKey);
-    if (!col) return;
-    resizingRef.current = { key: columnKey, startX: e.clientX, startWidth: col.width };
-
-    const handleMouseMove = (ev: MouseEvent) => {
-      if (!resizingRef.current) return;
-      const diff = ev.clientX - resizingRef.current.startX;
-      const colConfig = columns.find(c => c.key === resizingRef.current!.key);
-      const minW = colConfig?.minWidth || 50;
-      const newWidth = Math.max(minW, resizingRef.current.startWidth + diff);
-      setColumns(prev => prev.map(c => c.key === resizingRef.current!.key ? { ...c, width: newWidth } : c));
-    };
-
-    const handleMouseUp = () => {
-      resizingRef.current = null;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [columns]);
-
-  const toggleColumn = (key: string) => {
-    setColumns(columns.map(col => 
-      col.key === key ? { ...col, visible: !col.visible } : col
-    ));
-  };
-
-  const visibleColumns = useMemo(() => columns.filter(col => col.visible), [columns]);
 
   const filteredProjects = useMemo(() => {
     if (!searchQuery) return projects;
@@ -434,84 +371,19 @@ const AllProjects = () => {
                   className="pl-10 w-64"
                 />
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Settings2 className="h-4 w-4 mr-2" />
-                    Manage Columns
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {columns.map((column) => (
-                    <DropdownMenuCheckboxItem
-                      key={column.key}
-                      checked={column.visible}
-                      onCheckedChange={() => toggleColumn(column.key)}
-                    >
-                      {column.label}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ManageColumnsButton columns={columns} toggleColumn={toggleColumn} />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {visibleColumns.map((column, colIndex) => (
-                    <TableHead
-                      key={column.key}
-                      className="relative whitespace-nowrap overflow-hidden text-ellipsis"
-                      style={{ width: column.width, minWidth: column.minWidth, maxWidth: column.width }}
-                    >
-                      <span className="block truncate pr-2">{column.label}</span>
-                      {colIndex < visibleColumns.length - 1 && (
-                        <div
-                          className="absolute right-0 top-0 bottom-0 w-[3px] cursor-col-resize z-10 group hover:bg-primary/30 flex items-center justify-center"
-                          onMouseDown={(e) => handleResizeStart(e, column.key)}
-                        >
-                          <div className="w-px h-full bg-border" />
-                        </div>
-                      )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProjects.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={visibleColumns.length} className="text-center py-12">
-                      <p className="text-muted-foreground">No projects found</p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProjects.map((project) => (
-                    <TableRow key={project.id}>
-                      {visibleColumns.map((column, colIndex) => (
-                        <TableCell
-                          key={column.key}
-                          className="relative overflow-hidden text-ellipsis whitespace-nowrap"
-                          style={{ width: column.width, minWidth: column.minWidth, maxWidth: column.width }}
-                        >
-                          <div className="truncate">
-                            {renderCellValue(project, column.key)}
-                          </div>
-                          {colIndex < visibleColumns.length - 1 && (
-                            <div className="absolute right-0 top-0 bottom-0 w-px bg-border/40" />
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <ResizableDataTable
+            visibleColumns={visibleColumns}
+            handleResizeStart={handleResizeStart}
+            data={filteredProjects}
+            rowKey={(p) => p.id}
+            emptyMessage="No projects found"
+            renderCell={(project: Project, key: string) => renderCellValue(project, key as keyof Project | 'actions')}
+          />
         </CardContent>
       </Card>
 

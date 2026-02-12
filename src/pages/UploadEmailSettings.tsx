@@ -5,9 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -19,6 +16,8 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, Edit, Mail } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useResizableColumns, ColumnDef } from '@/hooks/useResizableColumns';
+import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
 
 type AccountStatus = 'live' | 'hold' | 'paused';
 
@@ -74,8 +73,18 @@ const statusConfig: Record<AccountStatus, { label: string; variant: 'default' | 
   paused: { label: 'Paused', variant: 'outline' },
 };
 
+const UPLOAD_EMAIL_COLUMNS: ColumnDef[] = [
+  { key: 'accountName', label: 'Account Name', visible: true, minWidth: 100, width: 170 },
+  { key: 'email', label: 'Email', visible: true, minWidth: 100, width: 180 },
+  { key: 'host', label: 'Host', visible: true, minWidth: 100, width: 200 },
+  { key: 'region', label: 'Region', visible: true, minWidth: 70, width: 100 },
+  { key: 'status', label: 'Status', visible: true, minWidth: 100, width: 140 },
+  { key: 'actions', label: 'Actions', visible: true, minWidth: 80, width: 100 },
+];
+
 const UploadEmailSettings = () => {
   const [accounts, setAccounts] = useState<EmailAccount[]>(MOCK_ACCOUNTS);
+  const { columns: tableColumns, visibleColumns, toggleColumn, handleResizeStart } = useResizableColumns(UPLOAD_EMAIL_COLUMNS);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<EmailAccount | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<EmailAccount | null>(null);
@@ -160,70 +169,56 @@ const UploadEmailSettings = () => {
               <Mail className="h-5 w-5" />
               Email Accounts
             </CardTitle>
-            <Button onClick={openAdd} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Add Account
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button onClick={openAdd} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Account
+              </Button>
+              <ManageColumnsButton columns={tableColumns} toggleColumn={toggleColumn} />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Account Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Host</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {accounts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    No email accounts configured
-                  </TableCell>
-                </TableRow>
-              ) : (
-                accounts.map((account) => (
-                  <TableRow key={account.id}>
-                    <TableCell className="font-medium">{account.accountName}</TableCell>
-                    <TableCell className="text-sm">{account.email}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{account.host}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{account.region}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={account.status}
-                        onValueChange={(val) => updateStatus(account.id, val as AccountStatus)}
-                      >
-                        <SelectTrigger className="w-[120px] h-8">
-                          <Badge variant={statusConfig[account.status].variant} className="text-xs">
-                            {statusConfig[account.status].label}
-                          </Badge>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="live">Live</SelectItem>
-                          <SelectItem value="hold">On Hold</SelectItem>
-                          <SelectItem value="paused">Paused</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(account)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm(account)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <ResizableDataTable
+            visibleColumns={visibleColumns}
+            handleResizeStart={handleResizeStart}
+            data={accounts}
+            rowKey={(a) => a.id}
+            emptyMessage="No email accounts configured"
+            renderCell={(account: EmailAccount, key: string) => {
+              switch (key) {
+                case 'accountName': return <span className="font-medium">{account.accountName}</span>;
+                case 'email': return <span className="text-sm">{account.email}</span>;
+                case 'host': return <span className="text-sm text-muted-foreground">{account.host}</span>;
+                case 'region': return <span className="text-sm text-muted-foreground">{account.region}</span>;
+                case 'status': return (
+                  <Select value={account.status} onValueChange={(val) => updateStatus(account.id, val as AccountStatus)}>
+                    <SelectTrigger className="w-[120px] h-8">
+                      <Badge variant={statusConfig[account.status].variant} className="text-xs">
+                        {statusConfig[account.status].label}
+                      </Badge>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="live">Live</SelectItem>
+                      <SelectItem value="hold">On Hold</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
+                    </SelectContent>
+                  </Select>
+                );
+                case 'actions': return (
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(account)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm(account)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+                default: return '-';
+              }
+            }}
+          />
         </CardContent>
       </Card>
 
