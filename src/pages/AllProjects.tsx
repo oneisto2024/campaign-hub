@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -200,27 +200,29 @@ interface ColumnConfig {
   key: keyof Project | 'actions';
   label: string;
   visible: boolean;
+  minWidth: number;
+  width: number;
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { key: 'sNo', label: 'S.No', visible: true },
-  { key: 'clientId', label: 'Client ID', visible: true },
-  { key: 'projectName', label: 'Project Name', visible: true },
-  { key: 'uniqueId', label: 'Unique ID', visible: true },
-  { key: 'projectSummary', label: 'Project Summary', visible: true },
-  { key: 'milestones', label: 'Milestones', visible: true },
-  { key: 'startDate', label: 'Start Date', visible: true },
-  { key: 'projectAllocation', label: 'Project Allocation', visible: true },
-  { key: 'assetUrls', label: 'Asset URLs', visible: false },
-  { key: 'apiDoc', label: 'API Doc', visible: false },
-  { key: 'projectDocument', label: 'Project Document', visible: false },
-  { key: 'deliveryFormat', label: 'Delivery Format', visible: true },
-  { key: 'status', label: 'Status', visible: true },
-  { key: 'deleteFile', label: 'Delete File', visible: false },
-  { key: 'createdAt', label: 'Created At', visible: false },
-  { key: 'publishedAt', label: 'Published At', visible: false },
-  { key: 'actions', label: 'Actions', visible: true },
-  { key: 'publishStatus' as any, label: 'Publish', visible: true },
+  { key: 'sNo', label: 'S.No', visible: true, minWidth: 50, width: 60 },
+  { key: 'clientId', label: 'Client ID', visible: true, minWidth: 80, width: 110 },
+  { key: 'projectName', label: 'Project Name', visible: true, minWidth: 100, width: 200 },
+  { key: 'uniqueId', label: 'Unique ID', visible: true, minWidth: 80, width: 130 },
+  { key: 'projectSummary', label: 'Project Summary', visible: true, minWidth: 100, width: 200 },
+  { key: 'milestones', label: 'Milestones', visible: true, minWidth: 70, width: 100 },
+  { key: 'startDate', label: 'Start Date', visible: true, minWidth: 90, width: 120 },
+  { key: 'projectAllocation', label: 'Project Allocation', visible: true, minWidth: 80, width: 140 },
+  { key: 'assetUrls', label: 'Asset URLs', visible: false, minWidth: 80, width: 100 },
+  { key: 'apiDoc', label: 'API Doc', visible: false, minWidth: 60, width: 80 },
+  { key: 'projectDocument', label: 'Project Document', visible: false, minWidth: 80, width: 130 },
+  { key: 'deliveryFormat', label: 'Delivery Format', visible: true, minWidth: 80, width: 120 },
+  { key: 'status', label: 'Status', visible: true, minWidth: 70, width: 100 },
+  { key: 'deleteFile', label: 'Delete File', visible: false, minWidth: 60, width: 90 },
+  { key: 'createdAt', label: 'Created At', visible: false, minWidth: 90, width: 120 },
+  { key: 'publishedAt', label: 'Published At', visible: false, minWidth: 90, width: 120 },
+  { key: 'actions', label: 'Actions', visible: true, minWidth: 100, width: 120 },
+  { key: 'publishStatus' as any, label: 'Publish', visible: true, minWidth: 70, width: 90 },
 ];
 
 const AllProjects = () => {
@@ -231,6 +233,39 @@ const AllProjects = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isScopeDialogOpen, setIsScopeDialogOpen] = useState(false);
   const [publishProject, setPublishProject] = useState<Project | null>(null);
+
+  // Column resize logic
+  const resizingRef = useRef<{ key: string; startX: number; startWidth: number } | null>(null);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent, columnKey: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const col = columns.find(c => c.key === columnKey);
+    if (!col) return;
+    resizingRef.current = { key: columnKey, startX: e.clientX, startWidth: col.width };
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const diff = ev.clientX - resizingRef.current.startX;
+      const colConfig = columns.find(c => c.key === resizingRef.current!.key);
+      const minW = colConfig?.minWidth || 50;
+      const newWidth = Math.max(minW, resizingRef.current.startWidth + diff);
+      setColumns(prev => prev.map(c => c.key === resizingRef.current!.key ? { ...c, width: newWidth } : c));
+    };
+
+    const handleMouseUp = () => {
+      resizingRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [columns]);
 
   const toggleColumn = (key: string) => {
     setColumns(columns.map(col => 
@@ -428,9 +463,21 @@ const AllProjects = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {visibleColumns.map((column) => (
-                    <TableHead key={column.key} className="whitespace-nowrap">
-                      {column.label}
+                  {visibleColumns.map((column, colIndex) => (
+                    <TableHead
+                      key={column.key}
+                      className="relative whitespace-nowrap overflow-hidden text-ellipsis"
+                      style={{ width: column.width, minWidth: column.minWidth, maxWidth: column.width }}
+                    >
+                      <span className="block truncate pr-2">{column.label}</span>
+                      {colIndex < visibleColumns.length - 1 && (
+                        <div
+                          className="absolute right-0 top-0 bottom-0 w-[3px] cursor-col-resize z-10 group hover:bg-primary/30 flex items-center justify-center"
+                          onMouseDown={(e) => handleResizeStart(e, column.key)}
+                        >
+                          <div className="w-px h-full bg-border" />
+                        </div>
+                      )}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -445,9 +492,18 @@ const AllProjects = () => {
                 ) : (
                   filteredProjects.map((project) => (
                     <TableRow key={project.id}>
-                      {visibleColumns.map((column) => (
-                        <TableCell key={column.key} className="whitespace-nowrap">
-                          {renderCellValue(project, column.key)}
+                      {visibleColumns.map((column, colIndex) => (
+                        <TableCell
+                          key={column.key}
+                          className="relative overflow-hidden text-ellipsis whitespace-nowrap"
+                          style={{ width: column.width, minWidth: column.minWidth, maxWidth: column.width }}
+                        >
+                          <div className="truncate">
+                            {renderCellValue(project, column.key)}
+                          </div>
+                          {colIndex < visibleColumns.length - 1 && (
+                            <div className="absolute right-0 top-0 bottom-0 w-px bg-border/40" />
+                          )}
                         </TableCell>
                       ))}
                     </TableRow>
