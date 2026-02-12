@@ -6,9 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -17,6 +14,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Edit, ShieldCheck } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useResizableColumns, ColumnDef } from '@/hooks/useResizableColumns';
+import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
 
 interface ValidationAPIAccount {
   id: string;
@@ -43,8 +42,17 @@ const MOCK_ACCOUNTS: ValidationAPIAccount[] = [
   },
 ];
 
+const VALIDATION_COLUMNS: ColumnDef[] = [
+  { key: 'accountName', label: 'Account Name', visible: true, minWidth: 100, width: 180 },
+  { key: 'apiKey', label: 'API Key', visible: true, minWidth: 100, width: 180 },
+  { key: 'status', label: 'Status', visible: true, minWidth: 70, width: 100 },
+  { key: 'liveHold', label: 'Live / Hold', visible: true, minWidth: 70, width: 100 },
+  { key: 'actions', label: 'Actions', visible: true, minWidth: 80, width: 100 },
+];
+
 const EmailValidationAPI = () => {
   const [accounts, setAccounts] = useState<ValidationAPIAccount[]>(MOCK_ACCOUNTS);
+  const { columns: tableColumns, visibleColumns, toggleColumn, handleResizeStart } = useResizableColumns(VALIDATION_COLUMNS);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<ValidationAPIAccount | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<ValidationAPIAccount | null>(null);
@@ -132,65 +140,52 @@ const EmailValidationAPI = () => {
               <ShieldCheck className="h-5 w-5" />
               Validation API Accounts
             </CardTitle>
-            <Button onClick={openAdd} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Add API Account
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button onClick={openAdd} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Add API Account
+              </Button>
+              <ManageColumnsButton columns={tableColumns} toggleColumn={toggleColumn} />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Account Name</TableHead>
-                <TableHead>API Key</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Live / Hold</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {accounts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                    No validation API accounts configured
-                  </TableCell>
-                </TableRow>
-              ) : (
-                accounts.map((account) => (
-                  <TableRow key={account.id}>
-                    <TableCell className="font-medium">{account.accountName}</TableCell>
-                    <TableCell>
-                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                        {account.apiKey.slice(0, 12)}••••••
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={account.isLive ? 'default' : 'secondary'}>
-                        {account.isLive ? 'Live' : 'On Hold'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={account.isLive}
-                        onCheckedChange={() => toggleLive(account.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(account)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm(account)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <ResizableDataTable
+            visibleColumns={visibleColumns}
+            handleResizeStart={handleResizeStart}
+            data={accounts}
+            rowKey={(a) => a.id}
+            emptyMessage="No validation API accounts configured"
+            renderCell={(account: ValidationAPIAccount, key: string) => {
+              switch (key) {
+                case 'accountName': return <span className="font-medium">{account.accountName}</span>;
+                case 'apiKey': return (
+                  <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                    {account.apiKey.slice(0, 12)}••••••
+                  </code>
+                );
+                case 'status': return (
+                  <Badge variant={account.isLive ? 'default' : 'secondary'}>
+                    {account.isLive ? 'Live' : 'On Hold'}
+                  </Badge>
+                );
+                case 'liveHold': return (
+                  <Switch checked={account.isLive} onCheckedChange={() => toggleLive(account.id)} />
+                );
+                case 'actions': return (
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(account)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm(account)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+                default: return '-';
+              }
+            }}
+          />
         </CardContent>
       </Card>
 

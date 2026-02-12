@@ -22,6 +22,8 @@ import { ScopeData } from './CreateCampaign';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useResizableColumns, ColumnDef } from '@/hooks/useResizableColumns';
+import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
 
 // Default contact properties for field mapping (left column)
 const DEFAULT_CONTACT_PROPERTIES = [
@@ -92,10 +94,25 @@ const MOCK_IMPORT_PROJECTS: ImportProject[] = [
   },
 ];
 
+const DB_IMPORT_COLUMNS: ColumnDef[] = [
+  { key: 'projectName', label: 'Project Name', visible: true, minWidth: 100, width: 200 },
+  { key: 'projectSummary', label: 'Project Summary', visible: true, minWidth: 100, width: 200 },
+  { key: 'clientId', label: 'Client ID', visible: true, minWidth: 80, width: 110 },
+  { key: 'uniqueId', label: 'Unique ID', visible: true, minWidth: 80, width: 130 },
+  { key: 'publishedAt', label: 'Published At', visible: true, minWidth: 90, width: 120 },
+  { key: 'dataUpload', label: 'Data Upload', visible: true, minWidth: 80, width: 110 },
+  { key: 'validation', label: 'Validation', visible: true, minWidth: 100, width: 160 },
+  { key: 'suppression', label: 'Suppression', visible: true, minWidth: 80, width: 110 },
+  { key: 'status', label: 'Status', visible: true, minWidth: 80, width: 120 },
+  { key: 'actions', label: 'Actions', visible: true, minWidth: 80, width: 100 },
+  { key: 'publish', label: 'Publish', visible: true, minWidth: 70, width: 90 },
+];
+
 const DBImport = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState<ImportProject[]>(MOCK_IMPORT_PROJECTS);
+  const { columns: tableColumns, visibleColumns, toggleColumn, handleResizeStart } = useResizableColumns(DB_IMPORT_COLUMNS);
   const [scopeProject, setScopeProject] = useState<ImportProject | null>(null);
   const [isScopeDialogOpen, setIsScopeDialogOpen] = useState(false);
   // Import dialog state
@@ -400,140 +417,92 @@ const DBImport = () => {
         <CardHeader className="border-b">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-medium">Import Queue</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search campaigns..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-64"
-              />
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search campaigns..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
+              <ManageColumnsButton columns={tableColumns} toggleColumn={toggleColumn} />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Project Name</TableHead>
-                <TableHead>Project Summary</TableHead>
-                <TableHead>Client ID</TableHead>
-                <TableHead>Unique ID</TableHead>
-                <TableHead>Published At</TableHead>
-                <TableHead>Data Upload</TableHead>
-                <TableHead>Validation</TableHead>
-                <TableHead>Suppression</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-                <TableHead>Publish</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProjects.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
-                    No campaigns in import queue
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredProjects.map((project) => (
-                  <TableRow key={project.id}>
-                    <TableCell className="font-medium">{project.projectName}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground line-clamp-2 max-w-xs">
-                          {project.projectSummary}
-                        </span>
-                        {!project.hasScopeDocument && project.scopeData && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 shrink-0"
-                            onClick={() => { setScopeProject(project); setIsScopeDialogOpen(true); }}
-                            title="View scope details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{project.clientId}</TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{project.uniqueId}</TableCell>
-                    <TableCell>{format(project.publishedAt, 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>
-                      {project.dataUploaded
-                        ? <Badge variant="default"><Check className="h-3 w-3 mr-1" />Done</Badge>
-                        : <Badge variant="outline">Pending</Badge>}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => triggerValidation(project)}
-                          disabled={!project.dataUploaded || project.validationRunStatus === 'in-progress' || project.validationRunStatus === 'completed'}
-                          title="Run validation"
-                        >
-                          {getValidationRunIcon(project.validationRunStatus)}
-                        </Button>
-                        {project.validationRunStatus === 'completed' && project.validationStats && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setStatsProject(project)}
-                            title="View validation stats"
-                          >
-                            <BarChart3 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {getValidationRunBadge(project.validationRunStatus)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {project.suppressionDone
-                        ? <Badge variant="default"><Check className="h-3 w-3 mr-1" />Done</Badge>
-                        : <Badge variant="outline">Pending</Badge>}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(project)}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openImportDialog(project)}
-                        disabled={project.importStatus === 'ready'}
-                      >
-                        <FileUp className="h-4 w-4 mr-1" />
-                        Import
+          <ResizableDataTable
+            visibleColumns={visibleColumns}
+            handleResizeStart={handleResizeStart}
+            data={filteredProjects}
+            rowKey={(p) => p.id}
+            emptyMessage="No campaigns in import queue"
+            renderCell={(project: ImportProject, key: string) => {
+              switch (key) {
+                case 'projectName': return <span className="font-medium">{project.projectName}</span>;
+                case 'projectSummary': return (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground line-clamp-2">
+                      {project.projectSummary}
+                    </span>
+                    {!project.hasScopeDocument && project.scopeData && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0"
+                        onClick={() => { setScopeProject(project); setIsScopeDialogOpen(true); }} title="View scope details">
+                        <Eye className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={`h-8 w-8 ${project.importStatus === 'ready' ? 'text-muted-foreground' : project.importStatus === 'suppressed' ? 'text-primary hover:text-primary' : 'text-muted-foreground'}`}
-                          onClick={() => {
-                            if (project.importStatus === 'suppressed') {
-                              setPublishConfirm(project);
-                            }
-                          }}
-                          disabled={project.importStatus !== 'suppressed'}
-                          title="Publish to Email Data"
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                        <Badge variant={project.importStatus === 'ready' ? 'default' : 'outline'} className="text-[10px] px-1.5 py-0">
-                          {getPublishStatus(project)}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                    )}
+                  </div>
+                );
+                case 'clientId': return <span className="font-mono text-sm">{project.clientId}</span>;
+                case 'uniqueId': return <span className="font-mono text-sm text-muted-foreground">{project.uniqueId}</span>;
+                case 'publishedAt': return format(project.publishedAt, 'MMM dd, yyyy');
+                case 'dataUpload': return project.dataUploaded
+                  ? <Badge variant="default"><Check className="h-3 w-3 mr-1" />Done</Badge>
+                  : <Badge variant="outline">Pending</Badge>;
+                case 'validation': return (
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8"
+                      onClick={() => triggerValidation(project)}
+                      disabled={!project.dataUploaded || project.validationRunStatus === 'in-progress' || project.validationRunStatus === 'completed'}
+                      title="Run validation">
+                      {getValidationRunIcon(project.validationRunStatus)}
+                    </Button>
+                    {project.validationRunStatus === 'completed' && project.validationStats && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8"
+                        onClick={() => setStatsProject(project)} title="View validation stats">
+                        <BarChart3 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {getValidationRunBadge(project.validationRunStatus)}
+                  </div>
+                );
+                case 'suppression': return project.suppressionDone
+                  ? <Badge variant="default"><Check className="h-3 w-3 mr-1" />Done</Badge>
+                  : <Badge variant="outline">Pending</Badge>;
+                case 'status': return getStatusBadge(project);
+                case 'actions': return (
+                  <Button variant="outline" size="sm" onClick={() => openImportDialog(project)} disabled={project.importStatus === 'ready'}>
+                    <FileUp className="h-4 w-4 mr-1" /> Import
+                  </Button>
+                );
+                case 'publish': return (
+                  <div className="flex flex-col items-center gap-1">
+                    <Button variant="ghost" size="icon"
+                      className={`h-8 w-8 ${project.importStatus === 'ready' ? 'text-muted-foreground' : project.importStatus === 'suppressed' ? 'text-primary hover:text-primary' : 'text-muted-foreground'}`}
+                      onClick={() => { if (project.importStatus === 'suppressed') setPublishConfirm(project); }}
+                      disabled={project.importStatus !== 'suppressed'} title="Publish to Email Data">
+                      <Send className="h-4 w-4" />
+                    </Button>
+                    <Badge variant={project.importStatus === 'ready' ? 'default' : 'outline'} className="text-[10px] px-1.5 py-0">
+                      {getPublishStatus(project)}
+                    </Badge>
+                  </div>
+                );
+                default: return '-';
+              }
+            }}
+          />
         </CardContent>
       </Card>
 
