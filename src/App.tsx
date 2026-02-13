@@ -16,6 +16,8 @@ import AllProjects from "./pages/AllProjects";
 import DBImport from "./pages/DBImport";
 import EmailValidationAPI from "./pages/EmailValidationAPI";
 import UploadEmailSettings from "./pages/UploadEmailSettings";
+import AddUser from "./pages/AddUser";
+import AllowedDomains from "./pages/AllowedDomains";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,10 +72,10 @@ const App = () => (
               <Route path="/reconnect/all-campaigns" element={<PlaceholderPage />} />
               
               {/* Administration */}
-              <Route path="/administration/add-user" element={<PlaceholderPage />} />
+              <Route path="/administration/add-user" element={<AddUser />} />
               <Route path="/administration/manage-users" element={<PlaceholderPage />} />
               <Route path="/administration/access-restriction" element={<PlaceholderPage />} />
-              <Route path="/administration/allowed-domains" element={<PlaceholderPage />} />
+              <Route path="/administration/allowed-domains" element={<AllowedDomains />} />
               <Route path="/administration/generate-et" element={<PlaceholderPage />} />
               
               {/* Security */}
