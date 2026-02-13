@@ -18,6 +18,8 @@ import EmailValidationAPI from "./pages/EmailValidationAPI";
 import UploadEmailSettings from "./pages/UploadEmailSettings";
 import AddUser from "./pages/AddUser";
 import AllowedDomains from "./pages/AllowedDomains";
+import ManageUsers from "./pages/ManageUsers";
+import AllClients from "./pages/AllClients";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,7 +40,7 @@ const App = () => (
               
               {/* Client Management */}
               <Route path="/clients/create" element={<CreateClient />} />
-              <Route path="/clients/all" element={<PlaceholderPage />} />
+              <Route path="/clients/all" element={<AllClients />} />
               
               {/* Project Initiator */}
               <Route path="/project-initiator/create-campaign" element={<CreateCampaign />} />
@@ -73,7 +75,7 @@ const App = () => (
               
               {/* Administration */}
               <Route path="/administration/add-user" element={<AddUser />} />
-              <Route path="/administration/manage-users" element={<PlaceholderPage />} />
+              <Route path="/administration/manage-users" element={<ManageUsers />} />
               <Route path="/administration/access-restriction" element={<PlaceholderPage />} />
               <Route path="/administration/allowed-domains" element={<AllowedDomains />} />
               <Route path="/administration/generate-et" element={<PlaceholderPage />} />
