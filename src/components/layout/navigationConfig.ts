@@ -60,7 +60,7 @@ export const moduleGroups: NavGroup[] = [
     ],
   },
   {
-    title: 'Email Data',
+    title: 'Email Draft',
     icon: Mail,
     items: [
       { title: 'All Content', href: '/email-data/all-content', icon: Mail },
