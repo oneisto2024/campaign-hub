@@ -20,6 +20,7 @@ import AddUser from "./pages/AddUser";
 import AllowedDomains from "./pages/AllowedDomains";
 import ManageUsers from "./pages/ManageUsers";
 import AllClients from "./pages/AllClients";
+import EmailDraft from "./pages/EmailDraft";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,7 +51,7 @@ const App = () => (
               <Route path="/db-import/all-campaigns" element={<DBImport />} />
               
               {/* Email Data */}
-              <Route path="/email-data/all-content" element={<PlaceholderPage />} />
+              <Route path="/email-data/all-content" element={<EmailDraft />} />
               
               {/* Email Sending / Campaign */}
               <Route path="/campaign/abm-campaign" element={<PlaceholderPage />} />

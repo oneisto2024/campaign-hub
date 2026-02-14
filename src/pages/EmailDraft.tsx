@@ -1,0 +1,814 @@
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  Search, ChevronDown, ChevronRight, Mail, Upload, Clock, Send, Plus, Trash2, CalendarIcon, MoreVertical,
+  ThumbsUp,
+} from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { format } from 'date-fns';
+import { toast } from '@/hooks/use-toast';
+
+// Mock email accounts from Email Config
+const MOCK_EMAIL_ACCOUNTS = [
+  { id: '1', accountName: 'AWS SES Production', email: 'noreply@company.com' },
+  { id: '2', accountName: 'SendGrid Backup', email: 'outreach@company.com' },
+];
+
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+interface FunnelStep {
+  id: string;
+  delayDays: number;
+  delayHours: number;
+  subject: string;
+  previewText: string;
+  htmlContent: string;
+  sendDays: string[];
+}
+
+interface Funnel {
+  id: string;
+  name: string;
+  status: 'active' | 'paused' | 'draft';
+  steps: FunnelStep[];
+}
+
+interface EmailTemplate {
+  htmlCode: string;
+  subjectLine: string;
+  emailAccountId: string;
+  sendType: 'now' | 'schedule';
+  scheduledDate?: Date;
+  scheduledTime?: string;
+}
+
+interface BatchRecord {
+  id: string;
+  batchName: string;
+  validCount: number;
+  catchAllCount: number;
+  totalCount: number;
+  publishedAt: Date;
+  template?: EmailTemplate;
+  funnels: Funnel[];
+}
+
+interface EmailDraftProject {
+  id: string;
+  clientId: string;
+  projectName: string;
+  uniqueId: string;
+  batches: BatchRecord[];
+}
+
+// Mock data
+const MOCK_PROJECTS: EmailDraftProject[] = [
+  {
+    id: '1',
+    clientId: 'ACME001',
+    projectName: 'Q1 Lead Generation Campaign',
+    uniqueId: 'PRJ-2026-001',
+    batches: [
+      {
+        id: 'b1', batchName: 'Batch 1', validCount: 3200, catchAllCount: 800,
+        totalCount: 4000, publishedAt: new Date('2026-01-15'), funnels: [],
+      },
+      {
+        id: 'b2', batchName: 'Batch 2', validCount: 1500, catchAllCount: 300,
+        totalCount: 1800, publishedAt: new Date('2026-01-20'), funnels: [],
+      },
+    ],
+  },
+  {
+    id: '2',
+    clientId: 'ACME001',
+    projectName: 'Q2 Webinar Follow-up',
+    uniqueId: 'PRJ-2026-005',
+    batches: [
+      {
+        id: 'b3', batchName: 'Batch 1', validCount: 2100, catchAllCount: 400,
+        totalCount: 2500, publishedAt: new Date('2026-02-01'), funnels: [],
+      },
+    ],
+  },
+  {
+    id: '3',
+    clientId: 'GLOB003',
+    projectName: 'ABM Campaign - Fortune 500',
+    uniqueId: 'PRJ-2026-003',
+    batches: [
+      {
+        id: 'b4', batchName: 'Batch 1', validCount: 8000, catchAllCount: 2000,
+        totalCount: 10000, publishedAt: new Date('2026-01-25'), funnels: [],
+      },
+    ],
+  },
+];
+
+const EmailDraft = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [projects, setProjects] = useState<EmailDraftProject[]>(MOCK_PROJECTS);
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+
+  // Template dialog
+  const [templateDialog, setTemplateDialog] = useState<{ projectId: string; batchId: string } | null>(null);
+  const [template, setTemplate] = useState<EmailTemplate>({
+    htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now',
+  });
+
+  // Funnel dialog
+  const [funnelDialog, setFunnelDialog] = useState<{ projectId: string; batchId: string } | null>(null);
+  const [newFunnelName, setNewFunnelName] = useState('');
+
+  // Funnel step editor
+  const [editingFunnel, setEditingFunnel] = useState<{ projectId: string; batchId: string; funnelId: string } | null>(null);
+
+  // Group projects by clientId
+  const groupedProjects = useMemo(() => {
+    const filtered = searchQuery
+      ? projects.filter(p =>
+          p.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.clientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.uniqueId.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : projects;
+
+    const groups: Record<string, EmailDraftProject[]> = {};
+    filtered.forEach(p => {
+      if (!groups[p.clientId]) groups[p.clientId] = [];
+      groups[p.clientId].push(p);
+    });
+    return groups;
+  }, [projects, searchQuery]);
+
+  const toggleClient = (clientId: string) => {
+    const next = new Set(expandedClients);
+    next.has(clientId) ? next.delete(clientId) : next.add(clientId);
+    setExpandedClients(next);
+  };
+
+  const getClientTotals = (clientProjects: EmailDraftProject[]) => {
+    let valid = 0, catchAll = 0, total = 0;
+    clientProjects.forEach(p => p.batches.forEach(b => {
+      valid += b.validCount;
+      catchAll += b.catchAllCount;
+      total += b.totalCount;
+    }));
+    return { valid, catchAll, total };
+  };
+
+  const openTemplateDialog = (projectId: string, batchId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    const batch = project?.batches.find(b => b.id === batchId);
+    if (batch?.template) {
+      setTemplate(batch.template);
+    } else {
+      setTemplate({ htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now' });
+    }
+    setTemplateDialog({ projectId, batchId });
+  };
+
+  const saveTemplate = () => {
+    if (!template.subjectLine.trim()) {
+      toast({ title: 'Subject line is required', variant: 'destructive' });
+      return;
+    }
+    if (!template.emailAccountId) {
+      toast({ title: 'Select an email account', variant: 'destructive' });
+      return;
+    }
+    if (template.sendType === 'schedule' && !template.scheduledDate) {
+      toast({ title: 'Select a schedule date', variant: 'destructive' });
+      return;
+    }
+    if (templateDialog) {
+      setProjects(prev => prev.map(p =>
+        p.id === templateDialog.projectId
+          ? {
+              ...p,
+              batches: p.batches.map(b =>
+                b.id === templateDialog.batchId ? { ...b, template: { ...template } } : b
+              ),
+            }
+          : p
+      ));
+      toast({ title: 'Template saved successfully' });
+    }
+    setTemplateDialog(null);
+  };
+
+  const createFunnel = (projectId: string, batchId: string) => {
+    if (!newFunnelName.trim()) {
+      toast({ title: 'Enter a funnel name', variant: 'destructive' });
+      return;
+    }
+    const newFunnel: Funnel = {
+      id: Date.now().toString(),
+      name: newFunnelName.trim(),
+      status: 'draft',
+      steps: [{
+        id: '1', delayDays: 0, delayHours: 1, subject: '', previewText: '',
+        htmlContent: '', sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      }],
+    };
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? {
+            ...p,
+            batches: p.batches.map(b =>
+              b.id === batchId ? { ...b, funnels: [...b.funnels, newFunnel] } : b
+            ),
+          }
+        : p
+    ));
+    setNewFunnelName('');
+    setFunnelDialog(null);
+    toast({ title: `Funnel "${newFunnel.name}" created` });
+  };
+
+  const toggleFunnelStatus = (projectId: string, batchId: string, funnelId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? {
+            ...p,
+            batches: p.batches.map(b =>
+              b.id === batchId
+                ? {
+                    ...b,
+                    funnels: b.funnels.map(f =>
+                      f.id === funnelId
+                        ? { ...f, status: f.status === 'active' ? 'paused' : 'active' }
+                        : f
+                    ),
+                  }
+                : b
+            ),
+          }
+        : p
+    ));
+  };
+
+  const deleteFunnel = (projectId: string, batchId: string, funnelId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? {
+            ...p,
+            batches: p.batches.map(b =>
+              b.id === batchId
+                ? { ...b, funnels: b.funnels.filter(f => f.id !== funnelId) }
+                : b
+            ),
+          }
+        : p
+    ));
+    toast({ title: 'Funnel deleted' });
+  };
+
+  const addFunnelStep = (projectId: string, batchId: string, funnelId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? {
+            ...p,
+            batches: p.batches.map(b =>
+              b.id === batchId
+                ? {
+                    ...b,
+                    funnels: b.funnels.map(f =>
+                      f.id === funnelId
+                        ? {
+                            ...f,
+                            steps: [...f.steps, {
+                              id: Date.now().toString(), delayDays: 1, delayHours: 0,
+                              subject: '', previewText: '', htmlContent: '',
+                              sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                            }],
+                          }
+                        : f
+                    ),
+                  }
+                : b
+            ),
+          }
+        : p
+    ));
+  };
+
+  const updateFunnelStep = (projectId: string, batchId: string, funnelId: string, stepId: string, updates: Partial<FunnelStep>) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? {
+            ...p,
+            batches: p.batches.map(b =>
+              b.id === batchId
+                ? {
+                    ...b,
+                    funnels: b.funnels.map(f =>
+                      f.id === funnelId
+                        ? { ...f, steps: f.steps.map(s => s.id === stepId ? { ...s, ...updates } : s) }
+                        : f
+                    ),
+                  }
+                : b
+            ),
+          }
+        : p
+    ));
+  };
+
+  const removeFunnelStep = (projectId: string, batchId: string, funnelId: string, stepId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? {
+            ...p,
+            batches: p.batches.map(b =>
+              b.id === batchId
+                ? {
+                    ...b,
+                    funnels: b.funnels.map(f =>
+                      f.id === funnelId
+                        ? { ...f, steps: f.steps.filter(s => s.id !== stepId) }
+                        : f
+                    ),
+                  }
+                : b
+            ),
+          }
+        : p
+    ));
+  };
+
+  const getEditingFunnelData = () => {
+    if (!editingFunnel) return null;
+    const project = projects.find(p => p.id === editingFunnel.projectId);
+    const batch = project?.batches.find(b => b.id === editingFunnel.batchId);
+    return batch?.funnels.find(f => f.id === editingFunnel.funnelId) || null;
+  };
+
+  const currentFunnel = getEditingFunnelData();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-sm font-light text-muted-foreground">Email Draft</p>
+        <h1 className="text-2xl font-semibold text-foreground">All Content</h1>
+      </div>
+
+      <Card>
+        <CardHeader className="border-b">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-medium flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Projects by Client
+            </CardTitle>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search projects..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-64"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {Object.keys(groupedProjects).length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No projects found</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {Object.entries(groupedProjects).map(([clientId, clientProjects]) => {
+                const totals = getClientTotals(clientProjects);
+                const isExpanded = expandedClients.has(clientId);
+
+                return (
+                  <Collapsible key={clientId} open={isExpanded} onOpenChange={() => toggleClient(clientId)}>
+                    {/* Client Header Row */}
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
+                        <div className="flex items-center gap-3">
+                          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          <span className="font-mono font-semibold text-sm">{clientId}</span>
+                          <Badge variant="secondary">{clientProjects.length} project{clientProjects.length > 1 ? 's' : ''}</Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground">Valid:</span>
+                            <Badge variant="default">{totals.valid.toLocaleString()}</Badge>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground">Catch-All:</span>
+                            <Badge variant="secondary">{totals.catchAll.toLocaleString()}</Badge>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground">Total:</span>
+                            <Badge variant="outline">{totals.total.toLocaleString()}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+
+                    {/* Expanded: Show each project and its batches */}
+                    <CollapsibleContent>
+                      <div className="bg-muted/20">
+                        {clientProjects.map(project => (
+                          <div key={project.id} className="border-t border-border/50">
+                            {/* Project Header */}
+                            <div className="px-6 py-3 flex items-center justify-between bg-muted/30">
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium text-sm">{project.projectName}</span>
+                                <span className="font-mono text-xs text-muted-foreground">{project.uniqueId}</span>
+                              </div>
+                            </div>
+
+                            {/* Batches Table */}
+                            <div className="px-6 pb-4">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b border-border/50">
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Batch</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Valid</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Catch-All</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Total</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Published</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Template</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Funnels</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {project.batches.map(batch => (
+                                    <tr key={batch.id} className="border-b border-border/30 last:border-0">
+                                      <td className="py-3 font-medium">{batch.batchName}</td>
+                                      <td className="py-3">
+                                        <Badge variant="default">{batch.validCount.toLocaleString()}</Badge>
+                                      </td>
+                                      <td className="py-3">
+                                        <Badge variant="secondary">{batch.catchAllCount.toLocaleString()}</Badge>
+                                      </td>
+                                      <td className="py-3">{batch.totalCount.toLocaleString()}</td>
+                                      <td className="py-3 text-muted-foreground">{format(batch.publishedAt, 'MMM dd, yyyy')}</td>
+                                      <td className="py-3">
+                                        <Button
+                                          variant={batch.template ? 'secondary' : 'outline'}
+                                          size="sm"
+                                          onClick={() => openTemplateDialog(project.id, batch.id)}
+                                        >
+                                          <Upload className="h-3 w-3 mr-1" />
+                                          {batch.template ? 'Edit Template' : 'Upload Template'}
+                                        </Button>
+                                      </td>
+                                      <td className="py-3">
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="outline">{batch.funnels.length} funnel{batch.funnels.length !== 1 ? 's' : ''}</Badge>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })}
+                                          >
+                                            <Plus className="h-3 w-3 mr-1" /> Funnel
+                                          </Button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+
+                              {/* Funnels display per batch */}
+                              {project.batches.map(batch =>
+                                batch.funnels.length > 0 && (
+                                  <div key={`funnels-${batch.id}`} className="mt-3 space-y-2">
+                                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                      {batch.batchName} — Funnels
+                                    </h5>
+                                    <div className="flex flex-wrap gap-3">
+                                      {batch.funnels.map(funnel => (
+                                        <div
+                                          key={funnel.id}
+                                          className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 shadow-sm"
+                                        >
+                                          <span className="text-sm font-medium">{funnel.name}</span>
+                                          <Badge
+                                            variant={funnel.status === 'active' ? 'default' : 'outline'}
+                                            className="text-xs gap-1"
+                                          >
+                                            {funnel.status === 'active' && <ThumbsUp className="h-3 w-3" />}
+                                            {funnel.status === 'active' ? 'Active' : funnel.status === 'paused' ? 'Paused' : 'Draft'}
+                                          </Badge>
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                <MoreVertical className="h-4 w-4" />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                              <DropdownMenuItem onClick={() => setEditingFunnel({
+                                                projectId: project.id, batchId: batch.id, funnelId: funnel.id,
+                                              })}>
+                                                Edit Steps
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => toggleFunnelStatus(project.id, batch.id, funnel.id)}>
+                                                {funnel.status === 'active' ? 'Pause' : 'Activate'}
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem
+                                                className="text-destructive"
+                                                onClick={() => deleteFunnel(project.id, batch.id, funnel.id)}
+                                              >
+                                                Delete
+                                              </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Upload Template Dialog */}
+      <Dialog open={!!templateDialog} onOpenChange={(open) => !open && setTemplateDialog(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Upload Email Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Subject Line *</Label>
+              <Input
+                value={template.subjectLine}
+                onChange={(e) => setTemplate({ ...template, subjectLine: e.target.value })}
+                placeholder="Enter email subject line"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>HTML Code *</Label>
+              <Textarea
+                value={template.htmlCode}
+                onChange={(e) => setTemplate({ ...template, htmlCode: e.target.value })}
+                placeholder="Paste your HTML email template here..."
+                className="min-h-[200px] font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Send From (Email Account) *</Label>
+              <Select
+                value={template.emailAccountId}
+                onValueChange={(v) => setTemplate({ ...template, emailAccountId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select email account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MOCK_EMAIL_ACCOUNTS.map(acc => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.accountName} ({acc.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-3">
+              <Label>Send Option</Label>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant={template.sendType === 'now' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTemplate({ ...template, sendType: 'now', scheduledDate: undefined, scheduledTime: undefined })}
+                >
+                  <Send className="h-3 w-3 mr-1" /> Send Now
+                </Button>
+                <Button
+                  variant={template.sendType === 'schedule' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTemplate({ ...template, sendType: 'schedule' })}
+                >
+                  <Clock className="h-3 w-3 mr-1" /> Schedule
+                </Button>
+              </div>
+
+              {template.sendType === 'schedule' && (
+                <div className="flex items-center gap-4 mt-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-[200px] justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {template.scheduledDate ? format(template.scheduledDate, 'PPP') : 'Pick a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={template.scheduledDate}
+                        onSelect={(d) => setTemplate({ ...template, scheduledDate: d })}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Input
+                    type="time"
+                    value={template.scheduledTime || ''}
+                    onChange={(e) => setTemplate({ ...template, scheduledTime: e.target.value })}
+                    className="w-[140px]"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTemplateDialog(null)}>Cancel</Button>
+            <Button onClick={saveTemplate}>Save Template</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Funnel Dialog */}
+      <Dialog open={!!funnelDialog} onOpenChange={(open) => !open && setFunnelDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Funnel</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Funnel Name *</Label>
+              <Input
+                value={newFunnelName}
+                onChange={(e) => setNewFunnelName(e.target.value)}
+                placeholder="e.g. Open-Follow-ups"
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              How soon do you want the first message sent when someone enters this funnel?
+              You can configure delays and content for each step after creation.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFunnelDialog(null)}>Cancel</Button>
+            <Button onClick={() => funnelDialog && createFunnel(funnelDialog.projectId, funnelDialog.batchId)}>
+              Create Funnel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Funnel Steps Editor Dialog */}
+      <Dialog open={!!editingFunnel} onOpenChange={(open) => !open && setEditingFunnel(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Funnel Steps — {currentFunnel?.name}</DialogTitle>
+          </DialogHeader>
+          {currentFunnel && editingFunnel && (
+            <ScrollArea className="h-[65vh] pr-4">
+              <div className="space-y-4">
+                {currentFunnel.steps.map((step, index) => (
+                  <Card key={step.id} className="relative">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm">Step {index + 1}</CardTitle>
+                        {currentFunnel.steps.length > 1 && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                            onClick={() => removeFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Delay */}
+                      <div className="space-y-2">
+                        <Label className="text-xs">
+                          {index === 0 ? 'Send first message after:' : 'Wait before sending:'}
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number" min={0} className="w-20"
+                            value={step.delayDays}
+                            onChange={(e) => updateFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id, { delayDays: parseInt(e.target.value) || 0 })}
+                          />
+                          <span className="text-sm text-muted-foreground">days</span>
+                          <Input
+                            type="number" min={0} max={23} className="w-20"
+                            value={step.delayHours}
+                            onChange={(e) => updateFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id, { delayHours: parseInt(e.target.value) || 0 })}
+                          />
+                          <span className="text-sm text-muted-foreground">hours</span>
+                        </div>
+                      </div>
+
+                      {/* Subject + Preview */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Subject Line</Label>
+                          <Input
+                            value={step.subject}
+                            onChange={(e) => updateFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id, { subject: e.target.value })}
+                            placeholder="Email subject"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Preview Text</Label>
+                          <Input
+                            value={step.previewText}
+                            onChange={(e) => updateFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id, { previewText: e.target.value })}
+                            placeholder="Preview text"
+                          />
+                        </div>
+                      </div>
+
+                      {/* HTML Content */}
+                      <div className="space-y-1">
+                        <Label className="text-xs">Email Content (HTML)</Label>
+                        <Textarea
+                          value={step.htmlContent}
+                          onChange={(e) => updateFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id, { htmlContent: e.target.value })}
+                          placeholder="Paste HTML content..."
+                          className="min-h-[100px] font-mono text-xs"
+                        />
+                      </div>
+
+                      {/* Send Days */}
+                      <div className="space-y-2">
+                        <Label className="text-xs">Send on these days</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {DAYS_OF_WEEK.map(day => {
+                            const isChecked = step.sendDays.includes(day);
+                            return (
+                              <div key={day} className="flex items-center gap-1.5">
+                                <Checkbox
+                                  id={`${step.id}-${day}`}
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) => {
+                                    const newDays = checked
+                                      ? [...step.sendDays, day]
+                                      : step.sendDays.filter(d => d !== day);
+                                    updateFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id, { sendDays: newDays });
+                                  }}
+                                />
+                                <label htmlFor={`${step.id}-${day}`} className="text-xs">{day.slice(0, 3)}</label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </CardContent>
+
+                    {/* Arrow connector */}
+                    {index < currentFunnel.steps.length - 1 && (
+                      <div className="flex justify-center py-1 text-muted-foreground">
+                        <ChevronDown className="h-5 w-5" />
+                      </div>
+                    )}
+                  </Card>
+                ))}
+
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => addFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId)}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add Step
+                </Button>
+              </div>
+            </ScrollArea>
+          )}
+          <DialogFooter>
+            <Button onClick={() => { setEditingFunnel(null); toast({ title: 'Funnel steps saved' }); }}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default EmailDraft;

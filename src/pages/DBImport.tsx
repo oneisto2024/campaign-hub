@@ -341,7 +341,7 @@ const DBImport = () => {
         p.id === publishConfirm.id ? { ...p, importStatus: 'ready' as const } : p
       ));
       setPublishConfirm(null);
-      toast({ title: 'Published to Email Data!' });
+      toast({ title: 'Published to Email Draft!' });
       navigate('/email-data/all-content');
     }
   };
