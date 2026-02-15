@@ -3,6 +3,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-reac
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import HolidayBanner from '@/components/HolidayBanner';
 
 interface Holiday {
   date: string;
@@ -190,6 +191,8 @@ const MyCalendar = () => {
           View national holidays from around the world
         </p>
       </div>
+
+      <HolidayBanner />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">

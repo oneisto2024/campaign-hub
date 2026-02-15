@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { useLayout } from '@/contexts/LayoutContext';
+import HolidayBanner from '@/components/HolidayBanner';
 
 const Settings = () => {
   const { layout, setLayout } = useLayout();
@@ -16,6 +17,8 @@ const Settings = () => {
           Customize your CRM experience
         </p>
       </div>
+
+      <HolidayBanner />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

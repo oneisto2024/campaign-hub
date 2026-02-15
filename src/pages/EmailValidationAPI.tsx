@@ -16,6 +16,7 @@ import { Plus, Trash2, Edit, ShieldCheck } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useResizableColumns, ColumnDef } from '@/hooks/useResizableColumns';
 import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
+import HolidayBanner from '@/components/HolidayBanner';
 
 interface ValidationAPIAccount {
   id: string;
@@ -43,6 +44,7 @@ const MOCK_ACCOUNTS: ValidationAPIAccount[] = [
 ];
 
 const VALIDATION_COLUMNS: ColumnDef[] = [
+  { key: 'sNo', label: 'S.No', visible: true, minWidth: 50, width: 60 },
   { key: 'accountName', label: 'Account Name', visible: true, minWidth: 100, width: 180 },
   { key: 'apiKey', label: 'API Key', visible: true, minWidth: 100, width: 180 },
   { key: 'status', label: 'Status', visible: true, minWidth: 70, width: 100 },
@@ -133,6 +135,8 @@ const EmailValidationAPI = () => {
         <h1 className="text-2xl font-semibold text-foreground">Email Validation API</h1>
       </div>
 
+      <HolidayBanner />
+
       <Card>
         <CardHeader className="border-b">
           <div className="flex items-center justify-between">
@@ -150,14 +154,15 @@ const EmailValidationAPI = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <ResizableDataTable
+           <ResizableDataTable
             visibleColumns={visibleColumns}
             handleResizeStart={handleResizeStart}
-            data={accounts}
+            data={accounts.map((a, i) => ({ ...a, _sNo: i + 1 }))}
             rowKey={(a) => a.id}
             emptyMessage="No validation API accounts configured"
-            renderCell={(account: ValidationAPIAccount, key: string) => {
+            renderCell={(account: ValidationAPIAccount & { _sNo: number }, key: string) => {
               switch (key) {
+                case 'sNo': return account._sNo;
                 case 'accountName': return <span className="font-medium">{account.accountName}</span>;
                 case 'apiKey': return (
                   <code className="text-xs bg-muted px-2 py-1 rounded font-mono">

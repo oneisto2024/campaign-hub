@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
 import { useResizableColumns, type ColumnDef } from '@/hooks/useResizableColumns';
+import HolidayBanner from '@/components/HolidayBanner';
 
 const DEFAULT_COLUMNS: ColumnDef[] = [
   { key: 'sno', label: 'S.No', visible: true, width: 70, minWidth: 50 },
@@ -145,6 +146,8 @@ const AllowedDomains = () => {
           </Dialog>
         </div>
       </div>
+
+      <HolidayBanner />
 
       <Card>
         <CardContent className="p-0">

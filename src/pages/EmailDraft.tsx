@@ -20,6 +20,7 @@ import {
   Search, ChevronDown, ChevronRight, Mail, Upload, Clock, Send, Plus, Trash2, CalendarIcon, MoreVertical,
   ThumbsUp, Eye, Copy, ExternalLink, TestTube,
 } from 'lucide-react';
+import HolidayBanner from '@/components/HolidayBanner';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -321,6 +322,8 @@ const EmailDraft = () => {
         <p className="text-sm font-light text-muted-foreground">Email Draft</p>
         <h1 className="text-2xl font-semibold text-foreground">All Content</h1>
       </div>
+
+      <HolidayBanner />
 
       <Card>
         <CardHeader className="border-b">
