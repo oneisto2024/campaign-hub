@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Search, ChevronDown, ChevronRight, Mail, Eye, BarChart3, Globe, Settings, Activity,
-  MousePointerClick, Users, ArrowUpRight, ArrowDownRight, TrendingUp, Reply, GitBranch,
+  MousePointerClick, Users, ArrowUpRight, ArrowDownRight, TrendingUp, Reply, GitBranch, Download,
 } from 'lucide-react';
 import {
   ChartContainer, ChartTooltip, ChartTooltipContent,
@@ -41,6 +41,7 @@ interface SendingProject {
   uniqueId: string;
   projectType: string;
   sentAt: Date;
+  sentFromEmail: string;
   totalDB: number;
   sent: number;
   delivered: number;
@@ -71,7 +72,7 @@ interface SendingProject {
 const MOCK_DATA: SendingProject[] = [
   {
     id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
-    projectType: 'Lead Generation', sentAt: new Date('2026-01-20'), totalDB: 4000, sent: 3800, delivered: 3650,
+    projectType: 'Lead Generation', sentAt: new Date('2026-01-20'), sentFromEmail: 'outreach@acme-campaigns.com', totalDB: 4000, sent: 3800, delivered: 3650,
     opens: 1825, uniqueOpens: 1200, clicks: 456, uniqueClicks: 320, bounced: 80, softBounced: 70,
     unsubscribed: 23, complained: 2, replied: 45, funnelCount: 2, hasFunnel: true,
     funnelStats: [
@@ -117,7 +118,7 @@ const MOCK_DATA: SendingProject[] = [
   },
   {
     id: '2', clientId: 'ACME001', projectName: 'Q2 Webinar Follow-up', uniqueId: 'PRJ-2026-005',
-    projectType: 'Webinar', sentAt: new Date('2026-02-05'), totalDB: 2500, sent: 2400, delivered: 2350,
+    projectType: 'Webinar', sentAt: new Date('2026-02-05'), sentFromEmail: 'events@acme-marketing.com', totalDB: 2500, sent: 2400, delivered: 2350,
     opens: 1410, uniqueOpens: 950, clicks: 380, uniqueClicks: 280, bounced: 30, softBounced: 20,
     unsubscribed: 8, complained: 1, replied: 22, funnelCount: 0, hasFunnel: false, funnelStats: [],
     templateHtml: '<html><body><h1>Webinar Invite</h1><a href="https://example.com/register">Register Now</a></body></html>',
@@ -145,7 +146,7 @@ const MOCK_DATA: SendingProject[] = [
   },
   {
     id: '3', clientId: 'GLOB003', projectName: 'ABM Campaign - Fortune 500', uniqueId: 'PRJ-2026-003',
-    projectType: 'ABM Campaign', sentAt: new Date('2026-01-28'), totalDB: 10000, sent: 9500, delivered: 9200,
+    projectType: 'ABM Campaign', sentAt: new Date('2026-01-28'), sentFromEmail: 'sales@globex-outreach.com', totalDB: 10000, sent: 9500, delivered: 9200,
     opens: 4600, uniqueOpens: 3200, clicks: 1380, uniqueClicks: 980, bounced: 180, softBounced: 120,
     unsubscribed: 45, complained: 5, replied: 120, funnelCount: 3, hasFunnel: true,
     funnelStats: [
@@ -188,24 +189,66 @@ const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--c
 
 type StatType = 'opens' | 'clicks' | 'bounces' | 'unsubs' | 'replies' | null;
 
+// Color mapping for stat icons
+const statIconColors: Record<string, string> = {
+  Sent: 'bg-chart-4/15 text-chart-4',           // orange
+  Delivered: 'bg-primary/15 text-primary',       // blue
+  'Open Rate': 'bg-chart-2/15 text-chart-2',    // teal/green
+  'Click Rate': 'bg-chart-1/15 text-chart-1',   // green
+  Bounced: 'bg-destructive/15 text-destructive', // dark red
+  Unsubs: 'bg-destructive/10 text-destructive/70', // light red
+  Replied: 'bg-chart-3/15 text-chart-3',         // purple
+  Funnels: 'bg-chart-5/15 text-chart-5',         // warm
+  'Total DB': 'bg-muted text-muted-foreground',
+  'Unique Opens': 'bg-chart-2/10 text-chart-2',
+  'Total Opens': 'bg-chart-2/10 text-chart-2',
+  'Unique Clicks': 'bg-chart-1/10 text-chart-1',
+  'Hard Bounced': 'bg-destructive/15 text-destructive',
+  'Soft Bounced': 'bg-destructive/10 text-destructive/60',
+  Unsubscribed: 'bg-destructive/10 text-destructive/70',
+  'Complaint Rate': 'bg-destructive/10 text-destructive/60',
+};
+
 const StatBox = ({ label, value, icon: Icon, trend, onClick }: {
   label: string; value: string | number; icon: React.ElementType; trend?: 'up' | 'down'; onClick?: () => void;
-}) => (
-  <div
-    className={`flex items-center gap-3 rounded-lg border border-border bg-background p-3 ${onClick ? 'cursor-pointer hover:border-primary/50 transition-colors' : ''}`}
-    onClick={onClick}
-  >
-    <div className="rounded-md bg-muted p-2"><Icon className="h-4 w-4 text-muted-foreground" /></div>
-    <div>
-      <p className="text-[11px] text-muted-foreground">{label}</p>
-      <div className="flex items-center gap-1">
-        <p className="text-lg font-semibold">{typeof value === 'number' ? value.toLocaleString() : value}</p>
-        {trend === 'up' && <ArrowUpRight className="h-3 w-3 text-primary" />}
-        {trend === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
+}) => {
+  const colorClass = statIconColors[label] || 'bg-muted text-muted-foreground';
+  return (
+    <div
+      className={`flex items-center gap-3 rounded-lg border border-border bg-background p-3 ${onClick ? 'cursor-pointer hover:border-primary/50 transition-colors' : ''}`}
+      onClick={onClick}
+    >
+      <div className={`rounded-md p-2 ${colorClass}`}><Icon className="h-4 w-4" /></div>
+      <div>
+        <p className="text-[11px] text-muted-foreground">{label}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-lg font-semibold">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+          {trend === 'up' && <ArrowUpRight className="h-3 w-3 text-chart-1" />}
+          {trend === 'down' && <ArrowDownRight className="h-3 w-3 text-destructive" />}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
+// CSV export utility
+const exportToCsv = (data: EmailDetail[], filename: string) => {
+  if (!data.length) return;
+  const headers = ['Email', 'Timestamp', 'Action'];
+  const rows = data.map(d => [
+    d.email,
+    d.timestamp.toISOString(),
+    d.action,
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 const EmailSending = () => {
   const { type } = useParams<{ type?: string }>();
@@ -215,7 +258,6 @@ const EmailSending = () => {
   const [detailTab, setDetailTab] = useState('summary');
   const [activeTypeTab, setActiveTypeTab] = useState(type ? type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'all');
 
-  // Stat drill-down dialog
   const [drillDown, setDrillDown] = useState<{ project: SendingProject; type: StatType } | null>(null);
 
   const filteredProjects = useMemo(() => {
@@ -292,7 +334,6 @@ const EmailSending = () => {
     opens: 'Opens', clicks: 'Clicks', bounces: 'Bounces', unsubs: 'Unsubscribes', replies: 'Replies',
   };
 
-  // Global serial number counter
   let globalSno = 0;
 
   return (
@@ -304,7 +345,6 @@ const EmailSending = () => {
 
       <HolidayBanner />
 
-      {/* Type Tabs */}
       <Tabs value={activeTypeTab} onValueChange={setActiveTypeTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="all">All</TabsTrigger>
@@ -312,13 +352,11 @@ const EmailSending = () => {
         </TabsList>
       </Tabs>
 
-      {/* Search */}
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
       </div>
 
-      {/* CID Grouped Projects */}
       <Card>
         <CardContent className="p-0">
           {Object.keys(groupedByCid).length === 0 ? (
@@ -348,7 +386,7 @@ const EmailSending = () => {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="bg-muted/20">
-                        {projs.map((project, pIdx) => {
+                        {projs.map((project) => {
                           globalSno++;
                           return (
                           <div key={project.id} className="border-t border-border/50 px-6 py-4">
@@ -422,9 +460,23 @@ const EmailSending = () => {
       <Dialog open={!!drillDown} onOpenChange={(open) => !open && setDrillDown(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>
-              {drillDown?.type && drillDownLabel[drillDown.type]} — {drillDown?.project.projectName}
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>
+                {drillDown?.type && drillDownLabel[drillDown.type]} — {drillDown?.project.projectName}
+              </DialogTitle>
+              {drillDown && getDrillDownData().length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => exportToCsv(
+                    getDrillDownData(),
+                    `${drillDown.project.uniqueId}_${drillDown.type}`
+                  )}
+                >
+                  <Download className="h-3 w-3 mr-1" /> Export CSV
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {drillDown && (
             <ScrollArea className="h-[60vh]">
@@ -473,7 +525,24 @@ const EmailSending = () => {
 
                 {/* Email list */}
                 <Card>
-                  <CardHeader><CardTitle className="text-sm">Email Details</CardTitle></CardHeader>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm">Email Details</CardTitle>
+                      {getDrillDownData().length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs"
+                          onClick={() => exportToCsv(
+                            getDrillDownData(),
+                            `${drillDown.project.uniqueId}_${drillDown.type}_details`
+                          )}
+                        >
+                          <Download className="h-3 w-3 mr-1" /> CSV
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
                   <CardContent className="p-0">
                     <table className="w-full text-sm">
                       <thead>
@@ -679,6 +748,10 @@ const EmailSending = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">Sent On</span><span>{detailProject.sentAt.toLocaleDateString()}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Total Database</span><span>{detailProject.totalDB.toLocaleString()}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Funnel Steps</span><span>{detailProject.funnelCount}</span></div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Sent From</span>
+                          <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{detailProject.sentFromEmail}</span>
+                        </div>
                       </CardContent>
                     </Card>
                     <Card>
