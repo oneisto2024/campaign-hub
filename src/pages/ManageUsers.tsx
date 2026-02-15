@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Search } from 'lucide-react';
 import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
 import { useResizableColumns, type ColumnDef } from '@/hooks/useResizableColumns';
+import HolidayBanner from '@/components/HolidayBanner';
 
 const DEFAULT_COLUMNS: ColumnDef[] = [
   { key: 'sno', label: 'S.No', visible: true, width: 70, minWidth: 50 },
@@ -101,6 +102,8 @@ const ManageUsers = () => {
         </div>
         <ManageColumnsButton columns={columns} toggleColumn={toggleColumn} />
       </div>
+
+      <HolidayBanner />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

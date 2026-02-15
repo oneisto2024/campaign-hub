@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { ScopeData } from './CreateCampaign';
 import { useResizableColumns, ColumnDef } from '@/hooks/useResizableColumns';
 import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
+import HolidayBanner from '@/components/HolidayBanner';
 
 interface CustomQuestion {
   question: string;
@@ -356,6 +357,8 @@ const AllProjects = () => {
           </Link>
         </Button>
       </div>
+
+      <HolidayBanner />
 
       <Card>
         <CardHeader className="border-b">

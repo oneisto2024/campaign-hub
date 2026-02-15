@@ -10,14 +10,29 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Search, ChevronDown, ChevronRight, Mail, Eye, BarChart3, Globe, Settings, Activity,
-  MousePointerClick, Users, ArrowUpRight, ArrowDownRight, TrendingUp,
+  MousePointerClick, Users, ArrowUpRight, ArrowDownRight, TrendingUp, Reply, GitBranch,
 } from 'lucide-react';
 import {
   ChartContainer, ChartTooltip, ChartTooltipContent,
 } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import HolidayBanner from '@/components/HolidayBanner';
 
 const PROJECT_TYPES = ['ABM Campaign', 'Webinar', 'Click Campaign', 'MQL Campaign', 'Lead Generation', 'Funnel Set'];
+
+interface EmailDetail {
+  email: string;
+  timestamp: Date;
+  action: string;
+}
+
+interface FunnelStepStat {
+  stepName: string;
+  sent: number;
+  opens: number;
+  clicks: number;
+  bounced: number;
+}
 
 interface SendingProject {
   id: string;
@@ -37,10 +52,20 @@ interface SendingProject {
   softBounced: number;
   unsubscribed: number;
   complained: number;
+  replied: number;
   funnelCount: number;
+  hasFunnel: boolean;
+  funnelStats: FunnelStepStat[];
   templateHtml: string;
   domains: { domain: string; count: number }[];
   dailyStats: { date: string; opens: number; clicks: number; bounces: number }[];
+  emailDetails: {
+    opens: EmailDetail[];
+    clicks: EmailDetail[];
+    bounces: EmailDetail[];
+    unsubs: EmailDetail[];
+    replies: EmailDetail[];
+  };
 }
 
 const MOCK_DATA: SendingProject[] = [
@@ -48,7 +73,11 @@ const MOCK_DATA: SendingProject[] = [
     id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
     projectType: 'Lead Generation', sentAt: new Date('2026-01-20'), totalDB: 4000, sent: 3800, delivered: 3650,
     opens: 1825, uniqueOpens: 1200, clicks: 456, uniqueClicks: 320, bounced: 80, softBounced: 70,
-    unsubscribed: 23, complained: 2, funnelCount: 2,
+    unsubscribed: 23, complained: 2, replied: 45, funnelCount: 2, hasFunnel: true,
+    funnelStats: [
+      { stepName: 'Step 1 - Initial Outreach', sent: 3800, opens: 1200, clicks: 320, bounced: 80 },
+      { stepName: 'Step 2 - Follow-up', sent: 2800, opens: 850, clicks: 200, bounced: 30 },
+    ],
     templateHtml: '<html><body><h1>Hello {{name}}</h1><p>Check out our <a href="https://example.com/offer">special offer</a></p><a href="https://example.com/demo">Book a demo</a></body></html>',
     domains: [
       { domain: 'gmail.com', count: 1200 }, { domain: 'outlook.com', count: 800 }, { domain: 'yahoo.com', count: 450 },
@@ -60,12 +89,37 @@ const MOCK_DATA: SendingProject[] = [
       { date: 'Jan 24', opens: 200, clicks: 50, bounces: 5 }, { date: 'Jan 25', opens: 145, clicks: 31, bounces: 4 },
       { date: 'Jan 26', opens: 100, clicks: 20, bounces: 3 },
     ],
+    emailDetails: {
+      opens: [
+        { email: 'john.smith@gmail.com', timestamp: new Date('2026-01-20T10:30:00'), action: 'Opened' },
+        { email: 'jane.doe@outlook.com', timestamp: new Date('2026-01-20T11:15:00'), action: 'Opened' },
+        { email: 'bob@company.com', timestamp: new Date('2026-01-21T09:00:00'), action: 'Opened' },
+        { email: 'alice@yahoo.com', timestamp: new Date('2026-01-21T14:22:00'), action: 'Opened' },
+        { email: 'mike@hotmail.com', timestamp: new Date('2026-01-22T08:45:00'), action: 'Opened' },
+      ],
+      clicks: [
+        { email: 'john.smith@gmail.com', timestamp: new Date('2026-01-20T10:32:00'), action: 'Clicked - special offer' },
+        { email: 'jane.doe@outlook.com', timestamp: new Date('2026-01-20T11:18:00'), action: 'Clicked - demo' },
+        { email: 'bob@company.com', timestamp: new Date('2026-01-21T09:05:00'), action: 'Clicked - special offer' },
+      ],
+      bounces: [
+        { email: 'invalid@fake.com', timestamp: new Date('2026-01-20T10:01:00'), action: 'Hard Bounce' },
+        { email: 'temp@expired.com', timestamp: new Date('2026-01-20T10:02:00'), action: 'Soft Bounce' },
+      ],
+      unsubs: [
+        { email: 'nomore@gmail.com', timestamp: new Date('2026-01-21T16:00:00'), action: 'Unsubscribed' },
+      ],
+      replies: [
+        { email: 'john.smith@gmail.com', timestamp: new Date('2026-01-20T12:00:00'), action: 'Reply - Interested' },
+        { email: 'bob@company.com', timestamp: new Date('2026-01-21T10:30:00'), action: 'Reply - Schedule call' },
+      ],
+    },
   },
   {
     id: '2', clientId: 'ACME001', projectName: 'Q2 Webinar Follow-up', uniqueId: 'PRJ-2026-005',
     projectType: 'Webinar', sentAt: new Date('2026-02-05'), totalDB: 2500, sent: 2400, delivered: 2350,
     opens: 1410, uniqueOpens: 950, clicks: 380, uniqueClicks: 280, bounced: 30, softBounced: 20,
-    unsubscribed: 8, complained: 1, funnelCount: 1,
+    unsubscribed: 8, complained: 1, replied: 22, funnelCount: 0, hasFunnel: false, funnelStats: [],
     templateHtml: '<html><body><h1>Webinar Invite</h1><a href="https://example.com/register">Register Now</a></body></html>',
     domains: [
       { domain: 'gmail.com', count: 900 }, { domain: 'outlook.com', count: 600 }, { domain: 'company.com', count: 500 },
@@ -76,12 +130,29 @@ const MOCK_DATA: SendingProject[] = [
       { date: 'Feb 7', opens: 280, clicks: 70, bounces: 4 }, { date: 'Feb 8', opens: 180, clicks: 40, bounces: 2 },
       { date: 'Feb 9', opens: 100, clicks: 30, bounces: 1 },
     ],
+    emailDetails: {
+      opens: [
+        { email: 'sarah@gmail.com', timestamp: new Date('2026-02-05T09:00:00'), action: 'Opened' },
+        { email: 'tom@outlook.com', timestamp: new Date('2026-02-05T10:30:00'), action: 'Opened' },
+      ],
+      clicks: [
+        { email: 'sarah@gmail.com', timestamp: new Date('2026-02-05T09:05:00'), action: 'Clicked - Register' },
+      ],
+      bounces: [{ email: 'bad@invalid.com', timestamp: new Date('2026-02-05T09:01:00'), action: 'Hard Bounce' }],
+      unsubs: [],
+      replies: [{ email: 'tom@outlook.com', timestamp: new Date('2026-02-05T11:00:00'), action: 'Reply - Question about webinar' }],
+    },
   },
   {
     id: '3', clientId: 'GLOB003', projectName: 'ABM Campaign - Fortune 500', uniqueId: 'PRJ-2026-003',
     projectType: 'ABM Campaign', sentAt: new Date('2026-01-28'), totalDB: 10000, sent: 9500, delivered: 9200,
     opens: 4600, uniqueOpens: 3200, clicks: 1380, uniqueClicks: 980, bounced: 180, softBounced: 120,
-    unsubscribed: 45, complained: 5, funnelCount: 3,
+    unsubscribed: 45, complained: 5, replied: 120, funnelCount: 3, hasFunnel: true,
+    funnelStats: [
+      { stepName: 'Step 1 - Intro Email', sent: 9500, opens: 3200, clicks: 980, bounced: 180 },
+      { stepName: 'Step 2 - Case Study', sent: 7000, opens: 2100, clicks: 650, bounced: 50 },
+      { stepName: 'Step 3 - Final CTA', sent: 5500, opens: 1500, clicks: 400, bounced: 20 },
+    ],
     templateHtml: '<html><body><h1>ABM Outreach</h1><a href="https://example.com/case-study">Case Study</a><a href="https://example.com/whitepaper">Whitepaper</a><a href="https://example.com/contact">Contact Us</a></body></html>',
     domains: [
       { domain: 'gmail.com', count: 3000 }, { domain: 'outlook.com', count: 2500 }, { domain: 'yahoo.com', count: 1500 },
@@ -93,13 +164,37 @@ const MOCK_DATA: SendingProject[] = [
       { date: 'Feb 1', opens: 500, clicks: 130, bounces: 15 }, { date: 'Feb 2', opens: 400, clicks: 80, bounces: 10 },
       { date: 'Feb 3', opens: 250, clicks: 40, bounces: 5 },
     ],
+    emailDetails: {
+      opens: [
+        { email: 'cto@fortune500.com', timestamp: new Date('2026-01-28T08:00:00'), action: 'Opened' },
+        { email: 'cfo@enterprise.com', timestamp: new Date('2026-01-28T09:30:00'), action: 'Opened' },
+        { email: 'vp@bigcorp.com', timestamp: new Date('2026-01-29T07:15:00'), action: 'Opened' },
+      ],
+      clicks: [
+        { email: 'cto@fortune500.com', timestamp: new Date('2026-01-28T08:05:00'), action: 'Clicked - Case Study' },
+        { email: 'vp@bigcorp.com', timestamp: new Date('2026-01-29T07:20:00'), action: 'Clicked - Contact Us' },
+      ],
+      bounces: [{ email: 'old@defunct.com', timestamp: new Date('2026-01-28T08:01:00'), action: 'Hard Bounce' }],
+      unsubs: [{ email: 'nope@corp.com', timestamp: new Date('2026-01-30T12:00:00'), action: 'Unsubscribed' }],
+      replies: [
+        { email: 'cto@fortune500.com', timestamp: new Date('2026-01-28T14:00:00'), action: 'Reply - Let\'s talk' },
+        { email: 'vp@bigcorp.com', timestamp: new Date('2026-01-29T16:00:00'), action: 'Reply - Send more info' },
+      ],
+    },
   },
 ];
 
 const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--muted-foreground))'];
 
-const StatBox = ({ label, value, icon: Icon, trend }: { label: string; value: string | number; icon: React.ElementType; trend?: 'up' | 'down' }) => (
-  <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">
+type StatType = 'opens' | 'clicks' | 'bounces' | 'unsubs' | 'replies' | null;
+
+const StatBox = ({ label, value, icon: Icon, trend, onClick }: {
+  label: string; value: string | number; icon: React.ElementType; trend?: 'up' | 'down'; onClick?: () => void;
+}) => (
+  <div
+    className={`flex items-center gap-3 rounded-lg border border-border bg-background p-3 ${onClick ? 'cursor-pointer hover:border-primary/50 transition-colors' : ''}`}
+    onClick={onClick}
+  >
     <div className="rounded-md bg-muted p-2"><Icon className="h-4 w-4 text-muted-foreground" /></div>
     <div>
       <p className="text-[11px] text-muted-foreground">{label}</p>
@@ -119,6 +214,9 @@ const EmailSending = () => {
   const [detailProject, setDetailProject] = useState<SendingProject | null>(null);
   const [detailTab, setDetailTab] = useState('summary');
   const [activeTypeTab, setActiveTypeTab] = useState(type ? type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'all');
+
+  // Stat drill-down dialog
+  const [drillDown, setDrillDown] = useState<{ project: SendingProject; type: StatType } | null>(null);
 
   const filteredProjects = useMemo(() => {
     let data = MOCK_DATA;
@@ -172,12 +270,39 @@ const EmailSending = () => {
   const chartConfig = { opens: { label: 'Opens', color: 'hsl(var(--primary))' }, clicks: { label: 'Clicks', color: 'hsl(var(--chart-2))' }, bounces: { label: 'Bounces', color: 'hsl(var(--destructive))' } };
   const domainConfig = { count: { label: 'Emails', color: 'hsl(var(--primary))' } };
 
+  const getDrillDownData = () => {
+    if (!drillDown) return [];
+    const { project, type } = drillDown;
+    if (!type) return [];
+    return project.emailDetails[type] || [];
+  };
+
+  const getDrillDownDailyChart = () => {
+    if (!drillDown?.type || !drillDown.project) return [];
+    const details = drillDown.project.emailDetails[drillDown.type] || [];
+    const dayMap: Record<string, number> = {};
+    details.forEach(d => {
+      const day = d.timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dayMap[day] = (dayMap[day] || 0) + 1;
+    });
+    return Object.entries(dayMap).map(([date, count]) => ({ date, count }));
+  };
+
+  const drillDownLabel: Record<string, string> = {
+    opens: 'Opens', clicks: 'Clicks', bounces: 'Bounces', unsubs: 'Unsubscribes', replies: 'Replies',
+  };
+
+  // Global serial number counter
+  let globalSno = 0;
+
   return (
     <div className="space-y-6">
       <div>
         <p className="text-sm font-light text-muted-foreground">Email Sending</p>
         <h1 className="text-2xl font-semibold text-foreground">Campaign Stats</h1>
       </div>
+
+      <HolidayBanner />
 
       {/* Type Tabs */}
       <Tabs value={activeTypeTab} onValueChange={setActiveTypeTab}>
@@ -223,10 +348,13 @@ const EmailSending = () => {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="bg-muted/20">
-                        {projs.map(project => (
+                        {projs.map((project, pIdx) => {
+                          globalSno++;
+                          return (
                           <div key={project.id} className="border-t border-border/50 px-6 py-4">
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-3">
+                                <span className="text-xs font-mono text-muted-foreground w-6">{globalSno}.</span>
                                 <span className="font-medium text-sm">{project.projectName}</span>
                                 <span className="font-mono text-xs text-muted-foreground">{project.uniqueId}</span>
                                 <Badge variant="outline" className="text-xs">{project.projectType}</Badge>
@@ -235,17 +363,51 @@ const EmailSending = () => {
                                 <Eye className="h-3 w-3 mr-1" /> Details
                               </Button>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-                              <StatBox label="Sent" value={project.sent} icon={Mail} />
-                              <StatBox label="Delivered" value={project.delivered} icon={Activity} />
-                              <StatBox label="Open Rate" value={`${openRate(project)}%`} icon={Eye} trend="up" />
-                              <StatBox label="Click Rate" value={`${clickRate(project)}%`} icon={MousePointerClick} trend="up" />
-                              <StatBox label="Bounced" value={project.bounced + project.softBounced} icon={ArrowDownRight} trend="down" />
-                              <StatBox label="Unsubs" value={project.unsubscribed} icon={Users} />
-                              <StatBox label="Funnels" value={project.funnelCount} icon={TrendingUp} />
+
+                            {/* Section 1: Main Stats with Reply */}
+                            <div className="mb-3">
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Campaign Stats</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+                                <StatBox label="Sent" value={project.sent} icon={Mail} />
+                                <StatBox label="Delivered" value={project.delivered} icon={Activity} />
+                                <StatBox label="Open Rate" value={`${openRate(project)}%`} icon={Eye} trend="up"
+                                  onClick={() => setDrillDown({ project, type: 'opens' })} />
+                                <StatBox label="Click Rate" value={`${clickRate(project)}%`} icon={MousePointerClick} trend="up"
+                                  onClick={() => setDrillDown({ project, type: 'clicks' })} />
+                                <StatBox label="Bounced" value={project.bounced + project.softBounced} icon={ArrowDownRight} trend="down"
+                                  onClick={() => setDrillDown({ project, type: 'bounces' })} />
+                                <StatBox label="Unsubs" value={project.unsubscribed} icon={Users}
+                                  onClick={() => setDrillDown({ project, type: 'unsubs' })} />
+                                <StatBox label="Replied" value={project.replied} icon={Reply}
+                                  onClick={() => setDrillDown({ project, type: 'replies' })} />
+                                <StatBox label="Funnels" value={project.funnelCount} icon={TrendingUp} />
+                              </div>
+                            </div>
+
+                            {/* Section 2: Funnel Stats */}
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1">
+                                <GitBranch className="h-3 w-3" /> Funnel Performance
+                              </p>
+                              {project.hasFunnel ? (
+                                <div className="space-y-1.5">
+                                  {project.funnelStats.map((step, i) => (
+                                    <div key={i} className="flex items-center gap-3 rounded border border-border/50 bg-background px-3 py-2 text-xs">
+                                      <span className="font-medium text-muted-foreground w-48 truncate">{step.stepName}</span>
+                                      <span>Sent: <strong>{step.sent.toLocaleString()}</strong></span>
+                                      <span>Opens: <strong>{step.opens.toLocaleString()}</strong></span>
+                                      <span>Clicks: <strong>{step.clicks.toLocaleString()}</strong></span>
+                                      <span>Bounced: <strong>{step.bounced.toLocaleString()}</strong></span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground italic">No funnel was created for this project</p>
+                              )}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
@@ -255,6 +417,96 @@ const EmailSending = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Stat Drill-Down Dialog */}
+      <Dialog open={!!drillDown} onOpenChange={(open) => !open && setDrillDown(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {drillDown?.type && drillDownLabel[drillDown.type]} — {drillDown?.project.projectName}
+            </DialogTitle>
+          </DialogHeader>
+          {drillDown && (
+            <ScrollArea className="h-[60vh]">
+              <div className="space-y-4">
+                {/* Insights */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-lg border bg-muted/30 p-3 text-center">
+                    <p className="text-2xl font-bold">{getDrillDownData().length}</p>
+                    <p className="text-xs text-muted-foreground">Total {drillDown.type && drillDownLabel[drillDown.type]}</p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/30 p-3 text-center">
+                    <p className="text-2xl font-bold">
+                      {getDrillDownData().length > 0
+                        ? new Set(getDrillDownData().map(d => d.email)).size
+                        : 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Unique Contacts</p>
+                  </div>
+                  <div className="rounded-lg border bg-muted/30 p-3 text-center">
+                    <p className="text-2xl font-bold">
+                      {getDrillDownData().length > 0
+                        ? getDrillDownData()[0].timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : '-'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Peak Activity Day</p>
+                  </div>
+                </div>
+
+                {/* Mini chart */}
+                {getDrillDownDailyChart().length > 0 && (
+                  <Card>
+                    <CardHeader><CardTitle className="text-sm">Activity Over Time</CardTitle></CardHeader>
+                    <CardContent>
+                      <ChartContainer config={{ count: { label: 'Count', color: 'hsl(var(--primary))' } }} className="h-[150px] w-full">
+                        <BarChart data={getDrillDownDailyChart()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+                        </BarChart>
+                      </ChartContainer>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Email list */}
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Email Details</CardTitle></CardHeader>
+                  <CardContent className="p-0">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium text-muted-foreground w-8">#</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Email</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">When</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getDrillDownData().map((detail, i) => (
+                          <tr key={i} className="border-b border-border/30">
+                            <td className="p-3 text-muted-foreground">{i + 1}</td>
+                            <td className="p-3 font-mono text-xs">{detail.email}</td>
+                            <td className="p-3 text-xs text-muted-foreground">
+                              {detail.timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {detail.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="p-3"><Badge variant="outline" className="text-xs">{detail.action}</Badge></td>
+                          </tr>
+                        ))}
+                        {getDrillDownData().length === 0 && (
+                          <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No data available</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Detail Dialog */}
       <Dialog open={!!detailProject} onOpenChange={(open) => !open && setDetailProject(null)}>
@@ -286,10 +538,9 @@ const EmailSending = () => {
                     <StatBox label="Hard Bounced" value={detailProject.bounced} icon={ArrowDownRight} trend="down" />
                     <StatBox label="Soft Bounced" value={detailProject.softBounced} icon={ArrowDownRight} />
                     <StatBox label="Unsubscribed" value={detailProject.unsubscribed} icon={Users} trend="down" />
-                    <StatBox label="Complaints" value={detailProject.complained} icon={Users} />
+                    <StatBox label="Replied" value={detailProject.replied} icon={Reply} />
                   </div>
 
-                  {/* Daily Trend Chart */}
                   <Card>
                     <CardHeader><CardTitle className="text-sm">Daily Engagement Trend</CardTitle></CardHeader>
                     <CardContent>
@@ -307,7 +558,6 @@ const EmailSending = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Delivery Breakdown */}
                   <Card>
                     <CardHeader><CardTitle className="text-sm">Delivery Breakdown</CardTitle></CardHeader>
                     <CardContent>
@@ -318,6 +568,7 @@ const EmailSending = () => {
                           { name: 'Clicked', count: detailProject.uniqueClicks },
                           { name: 'Bounced', count: detailProject.bounced + detailProject.softBounced },
                           { name: 'Unsubs', count: detailProject.unsubscribed },
+                          { name: 'Replied', count: detailProject.replied },
                         ]}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
@@ -330,7 +581,7 @@ const EmailSending = () => {
                   </Card>
                 </TabsContent>
 
-                {/* Heatmap - Template preview with links */}
+                {/* Heatmap */}
                 <TabsContent value="heatmap" className="space-y-4 mt-0">
                   <p className="text-sm text-muted-foreground">CTA links detected in the template with simulated click counts:</p>
                   <div className="space-y-2">
@@ -388,18 +639,23 @@ const EmailSending = () => {
                       </CardContent>
                     </Card>
                   </div>
-                  {/* Domain Table */}
                   <Card>
                     <CardContent className="p-0">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b"><th className="text-left p-3 font-medium text-muted-foreground">Domain</th><th className="text-left p-3 font-medium text-muted-foreground">Email Count</th><th className="text-left p-3 font-medium text-muted-foreground">% Share</th></tr>
+                          <tr className="border-b">
+                            <th className="text-left p-3 font-medium text-muted-foreground w-8">#</th>
+                            <th className="text-left p-3 font-medium text-muted-foreground">Domain</th>
+                            <th className="text-left p-3 font-medium text-muted-foreground">Email Count</th>
+                            <th className="text-left p-3 font-medium text-muted-foreground">% Share</th>
+                          </tr>
                         </thead>
                         <tbody>
                           {detailProject.domains.map((d, i) => {
                             const total = detailProject.domains.reduce((s, x) => s + x.count, 0);
                             return (
                               <tr key={i} className="border-b border-border/30">
+                                <td className="p-3 text-muted-foreground">{i + 1}</td>
                                 <td className="p-3 font-mono">{d.domain}</td>
                                 <td className="p-3">{d.count.toLocaleString()}</td>
                                 <td className="p-3">{((d.count / total) * 100).toFixed(1)}%</td>
@@ -431,6 +687,7 @@ const EmailSending = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">Open Rate</span><Badge variant="default">{openRate(detailProject)}%</Badge></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Click Rate</span><Badge variant="default">{clickRate(detailProject)}%</Badge></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Bounce Rate</span><Badge variant="destructive">{bounceRate(detailProject)}%</Badge></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Reply Rate</span><Badge variant="secondary">{detailProject.delivered > 0 ? ((detailProject.replied / detailProject.delivered) * 100).toFixed(2) : 0}%</Badge></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Unsubscribe Rate</span><span>{detailProject.delivered > 0 ? ((detailProject.unsubscribed / detailProject.delivered) * 100).toFixed(2) : 0}%</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Complaint Rate</span><span>{detailProject.delivered > 0 ? ((detailProject.complained / detailProject.delivered) * 100).toFixed(3) : 0}%</span></div>
                       </CardContent>
@@ -448,6 +705,7 @@ const EmailSending = () => {
                         <div><span className="text-muted-foreground block text-xs">Unique Clicks</span><span className="font-semibold">{detailProject.uniqueClicks.toLocaleString()}</span></div>
                         <div><span className="text-muted-foreground block text-xs">Hard Bounced</span><span className="font-semibold">{detailProject.bounced.toLocaleString()}</span></div>
                         <div><span className="text-muted-foreground block text-xs">Soft Bounced</span><span className="font-semibold">{detailProject.softBounced.toLocaleString()}</span></div>
+                        <div><span className="text-muted-foreground block text-xs">Replied</span><span className="font-semibold">{detailProject.replied.toLocaleString()}</span></div>
                         <div><span className="text-muted-foreground block text-xs">Unsubscribed</span><span className="font-semibold">{detailProject.unsubscribed.toLocaleString()}</span></div>
                         <div><span className="text-muted-foreground block text-xs">Complaints</span><span className="font-semibold">{detailProject.complained.toLocaleString()}</span></div>
                       </div>

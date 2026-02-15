@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import StatsCard from '@/components/dashboard/StatsCard';
 import WelcomeBanner from '@/components/dashboard/WelcomeBanner';
+import HolidayBanner from '@/components/HolidayBanner';
 
 const Dashboard = () => {
   return (
@@ -23,6 +24,8 @@ const Dashboard = () => {
           </p>
         </div>
       </div>
+
+      <HolidayBanner />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">

@@ -18,6 +18,7 @@ import { Plus, Trash2, Edit, Mail } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useResizableColumns, ColumnDef } from '@/hooks/useResizableColumns';
 import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
+import HolidayBanner from '@/components/HolidayBanner';
 
 type AccountStatus = 'live' | 'hold' | 'paused';
 
@@ -74,6 +75,7 @@ const statusConfig: Record<AccountStatus, { label: string; variant: 'default' | 
 };
 
 const UPLOAD_EMAIL_COLUMNS: ColumnDef[] = [
+  { key: 'sNo', label: 'S.No', visible: true, minWidth: 50, width: 60 },
   { key: 'accountName', label: 'Account Name', visible: true, minWidth: 100, width: 170 },
   { key: 'email', label: 'Email', visible: true, minWidth: 100, width: 180 },
   { key: 'host', label: 'Host', visible: true, minWidth: 100, width: 200 },
@@ -162,6 +164,8 @@ const UploadEmailSettings = () => {
         <h1 className="text-2xl font-semibold text-foreground">Upload Email Settings</h1>
       </div>
 
+      <HolidayBanner />
+
       <Card>
         <CardHeader className="border-b">
           <div className="flex items-center justify-between">
@@ -182,11 +186,12 @@ const UploadEmailSettings = () => {
           <ResizableDataTable
             visibleColumns={visibleColumns}
             handleResizeStart={handleResizeStart}
-            data={accounts}
+            data={accounts.map((a, i) => ({ ...a, _sNo: i + 1 }))}
             rowKey={(a) => a.id}
             emptyMessage="No email accounts configured"
-            renderCell={(account: EmailAccount, key: string) => {
+            renderCell={(account: EmailAccount & { _sNo: number }, key: string) => {
               switch (key) {
+                case 'sNo': return account._sNo;
                 case 'accountName': return <span className="font-medium">{account.accountName}</span>;
                 case 'email': return <span className="text-sm">{account.email}</span>;
                 case 'host': return <span className="text-sm text-muted-foreground">{account.host}</span>;

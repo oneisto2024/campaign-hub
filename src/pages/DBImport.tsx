@@ -24,6 +24,7 @@ import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useResizableColumns, ColumnDef } from '@/hooks/useResizableColumns';
 import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
+import HolidayBanner from '@/components/HolidayBanner';
 
 // Default contact properties for field mapping (left column)
 const DEFAULT_CONTACT_PROPERTIES = [
@@ -95,6 +96,7 @@ const MOCK_IMPORT_PROJECTS: ImportProject[] = [
 ];
 
 const DB_IMPORT_COLUMNS: ColumnDef[] = [
+  { key: 'sNo', label: 'S.No', visible: true, minWidth: 50, width: 60 },
   { key: 'projectName', label: 'Project Name', visible: true, minWidth: 100, width: 200 },
   { key: 'projectSummary', label: 'Project Summary', visible: true, minWidth: 100, width: 200 },
   { key: 'clientId', label: 'Client ID', visible: true, minWidth: 80, width: 110 },
@@ -413,6 +415,8 @@ const DBImport = () => {
         <h1 className="text-2xl font-semibold text-foreground">All Campaigns</h1>
       </div>
 
+      <HolidayBanner />
+
       <Card>
         <CardHeader className="border-b">
           <div className="flex items-center justify-between">
@@ -435,11 +439,12 @@ const DBImport = () => {
           <ResizableDataTable
             visibleColumns={visibleColumns}
             handleResizeStart={handleResizeStart}
-            data={filteredProjects}
+            data={filteredProjects.map((p, i) => ({ ...p, _sNo: i + 1 }))}
             rowKey={(p) => p.id}
             emptyMessage="No campaigns in import queue"
-            renderCell={(project: ImportProject, key: string) => {
+            renderCell={(project: ImportProject & { _sNo: number }, key: string) => {
               switch (key) {
+                case 'sNo': return project._sNo;
                 case 'projectName': return <span className="font-medium">{project.projectName}</span>;
                 case 'projectSummary': return (
                   <div className="flex items-center gap-2">

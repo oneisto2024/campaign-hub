@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import HolidayBanner from '@/components/HolidayBanner';
 
 const Profile = () => {
   return (
@@ -13,6 +14,8 @@ const Profile = () => {
           Manage your account information
         </p>
       </div>
+
+      <HolidayBanner />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
