@@ -70,6 +70,7 @@ export const moduleGroups: NavGroup[] = [
     title: 'Email Sending',
     icon: Megaphone,
     items: [
+      { title: 'All Campaigns', href: '/campaign/all', icon: Megaphone },
       { title: 'ABM Campaign', href: '/campaign/abm-campaign', icon: Megaphone },
       { title: 'Webinar', href: '/campaign/webinar', icon: Megaphone },
       { title: 'Click Campaign', href: '/campaign/click-campaign', icon: Megaphone },

@@ -21,6 +21,7 @@ import AllowedDomains from "./pages/AllowedDomains";
 import ManageUsers from "./pages/ManageUsers";
 import AllClients from "./pages/AllClients";
 import EmailDraft from "./pages/EmailDraft";
+import EmailSending from "./pages/EmailSending";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,12 +55,8 @@ const App = () => (
               <Route path="/email-data/all-content" element={<EmailDraft />} />
               
               {/* Email Sending / Campaign */}
-              <Route path="/campaign/abm-campaign" element={<PlaceholderPage />} />
-              <Route path="/campaign/webinar" element={<PlaceholderPage />} />
-              <Route path="/campaign/click-campaign" element={<PlaceholderPage />} />
-              <Route path="/campaign/mql-campaign" element={<PlaceholderPage />} />
-              <Route path="/campaign/lead-generation" element={<PlaceholderPage />} />
-              <Route path="/campaign/funnel-set" element={<PlaceholderPage />} />
+              <Route path="/campaign/all" element={<EmailSending />} />
+              <Route path="/campaign/:type" element={<EmailSending />} />
               
               {/* Lead Discovery */}
               <Route path="/lead-discovery" element={<PlaceholderPage />} />
