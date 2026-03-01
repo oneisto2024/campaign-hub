@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,9 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Search, ChevronDown, ChevronRight, Mail, Eye, BarChart3, Globe, Settings, Activity,
   MousePointerClick, Users, ArrowUpRight, ArrowDownRight, TrendingUp, Reply, GitBranch, Download,
+  Webhook, Link2, FileJson, Server, Filter,
 } from 'lucide-react';
 import {
   ChartContainer, ChartTooltip, ChartTooltipContent,
@@ -67,6 +69,9 @@ interface SendingProject {
     unsubs: EmailDetail[];
     replies: EmailDetail[];
   };
+  webhookUrl?: string;
+  webhookEvents?: string[];
+  apiKey?: string;
 }
 
 const MOCK_DATA: SendingProject[] = [
@@ -115,6 +120,9 @@ const MOCK_DATA: SendingProject[] = [
         { email: 'bob@company.com', timestamp: new Date('2026-01-21T10:30:00'), action: 'Reply - Schedule call' },
       ],
     },
+    webhookUrl: 'https://api.acme.com/webhooks/email-events',
+    webhookEvents: ['delivered', 'opened', 'clicked', 'bounced', 'unsubscribed', 'complained'],
+    apiKey: 'ak_live_xxxx...xxxx',
   },
   {
     id: '2', clientId: 'ACME001', projectName: 'Q2 Webinar Follow-up', uniqueId: 'PRJ-2026-005',
@@ -143,6 +151,8 @@ const MOCK_DATA: SendingProject[] = [
       unsubs: [],
       replies: [{ email: 'tom@outlook.com', timestamp: new Date('2026-02-05T11:00:00'), action: 'Reply - Question about webinar' }],
     },
+    webhookUrl: '',
+    webhookEvents: [],
   },
   {
     id: '3', clientId: 'GLOB003', projectName: 'ABM Campaign - Fortune 500', uniqueId: 'PRJ-2026-003',
@@ -182,6 +192,9 @@ const MOCK_DATA: SendingProject[] = [
         { email: 'vp@bigcorp.com', timestamp: new Date('2026-01-29T16:00:00'), action: 'Reply - Send more info' },
       ],
     },
+    webhookUrl: 'https://api.globex.com/hooks/campaigns',
+    webhookEvents: ['delivered', 'opened', 'clicked', 'bounced'],
+    apiKey: 'ak_live_yyyy...yyyy',
   },
 ];
 
@@ -189,16 +202,15 @@ const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--c
 
 type StatType = 'opens' | 'clicks' | 'bounces' | 'unsubs' | 'replies' | null;
 
-// Color mapping for stat icons
 const statIconColors: Record<string, string> = {
-  Sent: 'bg-chart-4/15 text-chart-4',           // orange
-  Delivered: 'bg-primary/15 text-primary',       // blue
-  'Open Rate': 'bg-chart-2/15 text-chart-2',    // teal/green
-  'Click Rate': 'bg-chart-1/15 text-chart-1',   // green
-  Bounced: 'bg-destructive/15 text-destructive', // dark red
-  Unsubs: 'bg-destructive/10 text-destructive/70', // light red
-  Replied: 'bg-chart-3/15 text-chart-3',         // purple
-  Funnels: 'bg-chart-5/15 text-chart-5',         // warm
+  Sent: 'bg-chart-4/15 text-chart-4',
+  Delivered: 'bg-primary/15 text-primary',
+  'Open Rate': 'bg-chart-2/15 text-chart-2',
+  'Click Rate': 'bg-chart-1/15 text-chart-1',
+  Bounced: 'bg-destructive/15 text-destructive',
+  Unsubs: 'bg-destructive/10 text-destructive/70',
+  Replied: 'bg-chart-3/15 text-chart-3',
+  Funnels: 'bg-chart-5/15 text-chart-5',
   'Total DB': 'bg-muted text-muted-foreground',
   'Unique Opens': 'bg-chart-2/10 text-chart-2',
   'Total Opens': 'bg-chart-2/10 text-chart-2',
@@ -231,15 +243,10 @@ const StatBox = ({ label, value, icon: Icon, trend, onClick }: {
   );
 };
 
-// CSV export utility
 const exportToCsv = (data: EmailDetail[], filename: string) => {
   if (!data.length) return;
   const headers = ['Email', 'Timestamp', 'Action'];
-  const rows = data.map(d => [
-    d.email,
-    d.timestamp.toISOString(),
-    d.action,
-  ]);
+  const rows = data.map(d => [d.email, d.timestamp.toISOString(), d.action]);
   const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -250,20 +257,53 @@ const exportToCsv = (data: EmailDetail[], filename: string) => {
   URL.revokeObjectURL(url);
 };
 
+const WEBHOOK_EVENTS = ['delivered', 'opened', 'clicked', 'bounced', 'unsubscribed', 'complained', 'deferred', 'dropped', 'spam_report'];
+
 const EmailSending = () => {
   const { type } = useParams<{ type?: string }>();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [detailProject, setDetailProject] = useState<SendingProject | null>(null);
   const [detailTab, setDetailTab] = useState('summary');
-  const [activeTypeTab, setActiveTypeTab] = useState(type ? type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'all');
+
+  // Derive activeTypeTab from URL param
+  const activeTypeTab = useMemo(() => {
+    if (!type) return 'all';
+    const decoded = type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return PROJECT_TYPES.includes(decoded) ? decoded : 'all';
+  }, [type]);
+
+  // When tab changes, navigate to the correct URL
+  const handleTabChange = (val: string) => {
+    if (val === 'all') {
+      navigate('/campaign/all');
+    } else {
+      const slug = val.toLowerCase().replace(/\s+/g, '-');
+      navigate(`/campaign/${slug}`);
+    }
+  };
 
   const [drillDown, setDrillDown] = useState<{ project: SendingProject; type: StatType } | null>(null);
+  // Funnel step drilldown
+  const [funnelDrillDown, setFunnelDrillDown] = useState<{ project: SendingProject; step: FunnelStepStat; statKey: string } | null>(null);
+
+  // Filters
+  const [filterCid, setFilterCid] = useState('all');
+  const [filterType, setFilterType] = useState('all');
+
+  const allCids = useMemo(() => [...new Set(MOCK_DATA.map(p => p.clientId))], []);
 
   const filteredProjects = useMemo(() => {
     let data = MOCK_DATA;
     if (activeTypeTab !== 'all') {
       data = data.filter(p => p.projectType === activeTypeTab);
+    }
+    if (filterCid !== 'all') {
+      data = data.filter(p => p.clientId === filterCid);
+    }
+    if (filterType !== 'all') {
+      data = data.filter(p => p.projectType === filterType);
     }
     if (searchQuery) {
       data = data.filter(p =>
@@ -273,7 +313,7 @@ const EmailSending = () => {
       );
     }
     return data;
-  }, [activeTypeTab, searchQuery]);
+  }, [activeTypeTab, searchQuery, filterCid, filterType]);
 
   const groupedByCid = useMemo(() => {
     const groups: Record<string, SendingProject[]> = {};
@@ -334,6 +374,21 @@ const EmailSending = () => {
     opens: 'Opens', clicks: 'Clicks', bounces: 'Bounces', unsubs: 'Unsubscribes', replies: 'Replies',
   };
 
+  // Generate mock funnel step email details
+  const getFunnelStepEmails = (step: FunnelStepStat, statKey: string): EmailDetail[] => {
+    const count = statKey === 'opens' ? step.opens : statKey === 'clicks' ? step.clicks : statKey === 'bounced' ? step.bounced : step.sent;
+    const mockEmails: EmailDetail[] = [];
+    const domains = ['gmail.com', 'outlook.com', 'company.com', 'yahoo.com'];
+    for (let i = 0; i < Math.min(count, 10); i++) {
+      mockEmails.push({
+        email: `user${i + 1}@${domains[i % domains.length]}`,
+        timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+        action: statKey === 'opens' ? 'Opened' : statKey === 'clicks' ? 'Clicked' : statKey === 'bounced' ? 'Bounced' : 'Sent',
+      });
+    }
+    return mockEmails;
+  };
+
   let globalSno = 0;
 
   return (
@@ -345,16 +400,36 @@ const EmailSending = () => {
 
       <HolidayBanner />
 
-      <Tabs value={activeTypeTab} onValueChange={setActiveTypeTab}>
+      <Tabs value={activeTypeTab} onValueChange={handleTabChange}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="all">All</TabsTrigger>
           {PROJECT_TYPES.map(t => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}
         </TabsList>
       </Tabs>
 
-      <div className="relative max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+      {/* Filters row */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={filterCid} onValueChange={setFilterCid}>
+            <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Client ID" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Clients</SelectItem>
+              {allCids.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Project Type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {PROJECT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Card>
@@ -402,7 +477,7 @@ const EmailSending = () => {
                               </Button>
                             </div>
 
-                            {/* Section 1: Main Stats with Reply */}
+                            {/* Section 1: Main Stats */}
                             <div className="mb-3">
                               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Campaign Stats</p>
                               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
@@ -422,7 +497,7 @@ const EmailSending = () => {
                               </div>
                             </div>
 
-                            {/* Section 2: Funnel Stats */}
+                            {/* Section 2: Funnel Stats with clickable detail */}
                             <div>
                               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1">
                                 <GitBranch className="h-3 w-3" /> Funnel Performance
@@ -432,10 +507,30 @@ const EmailSending = () => {
                                   {project.funnelStats.map((step, i) => (
                                     <div key={i} className="flex items-center gap-3 rounded border border-border/50 bg-background px-3 py-2 text-xs">
                                       <span className="font-medium text-muted-foreground w-48 truncate">{step.stepName}</span>
-                                      <span>Sent: <strong>{step.sent.toLocaleString()}</strong></span>
-                                      <span>Opens: <strong>{step.opens.toLocaleString()}</strong></span>
-                                      <span>Clicks: <strong>{step.clicks.toLocaleString()}</strong></span>
-                                      <span>Bounced: <strong>{step.bounced.toLocaleString()}</strong></span>
+                                      <span
+                                        className="cursor-pointer hover:text-chart-4 transition-colors"
+                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'sent' })}
+                                      >Sent: <strong>{step.sent.toLocaleString()}</strong></span>
+                                      <span
+                                        className="cursor-pointer hover:text-chart-2 transition-colors"
+                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'opens' })}
+                                      >Opens: <strong>{step.opens.toLocaleString()}</strong></span>
+                                      <span
+                                        className="cursor-pointer hover:text-chart-1 transition-colors"
+                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'clicks' })}
+                                      >Clicks: <strong>{step.clicks.toLocaleString()}</strong></span>
+                                      <span
+                                        className="cursor-pointer hover:text-destructive transition-colors"
+                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'bounced' })}
+                                      >Bounced: <strong>{step.bounced.toLocaleString()}</strong></span>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 text-[10px] ml-auto"
+                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'opens' })}
+                                      >
+                                        <Eye className="h-3 w-3 mr-1" /> Detail
+                                      </Button>
                                     </div>
                                   ))}
                                 </div>
@@ -456,6 +551,73 @@ const EmailSending = () => {
         </CardContent>
       </Card>
 
+      {/* Funnel Step Drill-Down Dialog */}
+      <Dialog open={!!funnelDrillDown} onOpenChange={(open) => !open && setFunnelDrillDown(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-base">
+                {funnelDrillDown?.step.stepName} — {funnelDrillDown?.statKey === 'sent' ? 'Sent' : funnelDrillDown?.statKey === 'opens' ? 'Opens' : funnelDrillDown?.statKey === 'clicks' ? 'Clicks' : 'Bounced'}
+              </DialogTitle>
+              {funnelDrillDown && (
+                <Button size="sm" variant="outline" onClick={() => {
+                  const emails = getFunnelStepEmails(funnelDrillDown.step, funnelDrillDown.statKey);
+                  exportToCsv(emails, `${funnelDrillDown.project.uniqueId}_funnel_${funnelDrillDown.statKey}`);
+                }}>
+                  <Download className="h-3 w-3 mr-1" /> Export CSV
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
+          {funnelDrillDown && (
+            <ScrollArea className="h-[60vh]">
+              <div className="space-y-4">
+                <div className="grid grid-cols-4 gap-3">
+                  {(['sent', 'opens', 'clicks', 'bounced'] as const).map(key => (
+                    <div
+                      key={key}
+                      className={`rounded-lg border p-3 text-center cursor-pointer transition-colors ${funnelDrillDown.statKey === key ? 'border-primary bg-primary/5' : 'bg-muted/30'}`}
+                      onClick={() => setFunnelDrillDown({ ...funnelDrillDown, statKey: key })}
+                    >
+                      <p className="text-2xl font-bold">{funnelDrillDown.step[key].toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{key}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Email Details</CardTitle></CardHeader>
+                  <CardContent className="p-0">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium text-muted-foreground w-8">#</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Email</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">When</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getFunnelStepEmails(funnelDrillDown.step, funnelDrillDown.statKey).map((detail, i) => (
+                          <tr key={i} className="border-b border-border/30">
+                            <td className="p-3 text-muted-foreground">{i + 1}</td>
+                            <td className="p-3 font-mono text-xs">{detail.email}</td>
+                            <td className="p-3 text-xs text-muted-foreground">
+                              {detail.timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {detail.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="p-3"><Badge variant="outline" className="text-xs">{detail.action}</Badge></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Stat Drill-Down Dialog */}
       <Dialog open={!!drillDown} onOpenChange={(open) => !open && setDrillDown(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
@@ -465,14 +627,7 @@ const EmailSending = () => {
                 {drillDown?.type && drillDownLabel[drillDown.type]} — {drillDown?.project.projectName}
               </DialogTitle>
               {drillDown && getDrillDownData().length > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => exportToCsv(
-                    getDrillDownData(),
-                    `${drillDown.project.uniqueId}_${drillDown.type}`
-                  )}
-                >
+                <Button size="sm" variant="outline" onClick={() => exportToCsv(getDrillDownData(), `${drillDown.project.uniqueId}_${drillDown.type}`)}>
                   <Download className="h-3 w-3 mr-1" /> Export CSV
                 </Button>
               )}
@@ -481,31 +636,20 @@ const EmailSending = () => {
           {drillDown && (
             <ScrollArea className="h-[60vh]">
               <div className="space-y-4">
-                {/* Insights */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-lg border bg-muted/30 p-3 text-center">
                     <p className="text-2xl font-bold">{getDrillDownData().length}</p>
                     <p className="text-xs text-muted-foreground">Total {drillDown.type && drillDownLabel[drillDown.type]}</p>
                   </div>
                   <div className="rounded-lg border bg-muted/30 p-3 text-center">
-                    <p className="text-2xl font-bold">
-                      {getDrillDownData().length > 0
-                        ? new Set(getDrillDownData().map(d => d.email)).size
-                        : 0}
-                    </p>
+                    <p className="text-2xl font-bold">{getDrillDownData().length > 0 ? new Set(getDrillDownData().map(d => d.email)).size : 0}</p>
                     <p className="text-xs text-muted-foreground">Unique Contacts</p>
                   </div>
                   <div className="rounded-lg border bg-muted/30 p-3 text-center">
-                    <p className="text-2xl font-bold">
-                      {getDrillDownData().length > 0
-                        ? getDrillDownData()[0].timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        : '-'}
-                    </p>
+                    <p className="text-2xl font-bold">{getDrillDownData().length > 0 ? getDrillDownData()[0].timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</p>
                     <p className="text-xs text-muted-foreground">Peak Activity Day</p>
                   </div>
                 </div>
-
-                {/* Mini chart */}
                 {getDrillDownDailyChart().length > 0 && (
                   <Card>
                     <CardHeader><CardTitle className="text-sm">Activity Over Time</CardTitle></CardHeader>
@@ -522,22 +666,12 @@ const EmailSending = () => {
                     </CardContent>
                   </Card>
                 )}
-
-                {/* Email list */}
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm">Email Details</CardTitle>
                       {getDrillDownData().length > 0 && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-xs"
-                          onClick={() => exportToCsv(
-                            getDrillDownData(),
-                            `${drillDown.project.uniqueId}_${drillDown.type}_details`
-                          )}
-                        >
+                        <Button size="sm" variant="ghost" className="text-xs" onClick={() => exportToCsv(getDrillDownData(), `${drillDown.project.uniqueId}_${drillDown.type}_details`)}>
                           <Download className="h-3 w-3 mr-1" /> CSV
                         </Button>
                       )}
@@ -590,6 +724,7 @@ const EmailSending = () => {
                 <TabsTrigger value="heatmap"><MousePointerClick className="h-3 w-3 mr-1" /> Heatmap</TabsTrigger>
                 <TabsTrigger value="domains"><Globe className="h-3 w-3 mr-1" /> Domains</TabsTrigger>
                 <TabsTrigger value="settings"><Settings className="h-3 w-3 mr-1" /> Settings</TabsTrigger>
+                <TabsTrigger value="webhook"><Webhook className="h-3 w-3 mr-1" /> Webhook</TabsTrigger>
               </TabsList>
 
               <ScrollArea className="h-[65vh] mt-4">
@@ -782,6 +917,99 @@ const EmailSending = () => {
                         <div><span className="text-muted-foreground block text-xs">Unsubscribed</span><span className="font-semibold">{detailProject.unsubscribed.toLocaleString()}</span></div>
                         <div><span className="text-muted-foreground block text-xs">Complaints</span><span className="font-semibold">{detailProject.complained.toLocaleString()}</span></div>
                       </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Webhook & API Config */}
+                <TabsContent value="webhook" className="space-y-4 mt-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2"><Webhook className="h-4 w-4" /> Webhook Configuration</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">Configure webhooks to receive real-time email event notifications for transactional and API-based sending.</p>
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <span className="text-xs font-medium text-muted-foreground">Webhook Endpoint URL</span>
+                          <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+                            <Link2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="font-mono text-xs truncate">{detailProject.webhookUrl || 'Not configured'}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-xs font-medium text-muted-foreground">Subscribed Events</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {WEBHOOK_EVENTS.map(event => {
+                              const active = detailProject.webhookEvents?.includes(event);
+                              return (
+                                <Badge key={event} variant={active ? 'default' : 'outline'} className="text-xs capitalize">
+                                  {event.replace('_', ' ')}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2"><FileJson className="h-4 w-4" /> API / Transactional Mail</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">Use the API key to send transactional emails and fetch real-time stats programmatically.</p>
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <span className="text-xs font-medium text-muted-foreground">API Key</span>
+                          <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+                            <Server className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="font-mono text-xs">{detailProject.apiKey || 'No API key assigned'}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-xs font-medium text-muted-foreground">Available Endpoints</span>
+                          <div className="space-y-1.5 text-xs">
+                            {[
+                              { method: 'POST', path: '/api/v1/send', desc: 'Send transactional email' },
+                              { method: 'GET', path: '/api/v1/stats/{campaign_id}', desc: 'Fetch campaign stats' },
+                              { method: 'GET', path: '/api/v1/events/{campaign_id}', desc: 'Stream event webhooks' },
+                              { method: 'GET', path: '/api/v1/bounces', desc: 'List all bounce events' },
+                              { method: 'GET', path: '/api/v1/unsubscribes', desc: 'List unsubscribe events' },
+                              { method: 'POST', path: '/api/v1/webhook/test', desc: 'Test webhook delivery' },
+                            ].map((ep, i) => (
+                              <div key={i} className="flex items-center gap-2 rounded border border-border/50 bg-background px-3 py-1.5">
+                                <Badge variant={ep.method === 'POST' ? 'default' : 'secondary'} className="text-[10px] font-mono">{ep.method}</Badge>
+                                <span className="font-mono text-muted-foreground">{ep.path}</span>
+                                <span className="ml-auto text-muted-foreground">{ep.desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2"><Activity className="h-4 w-4" /> Event Payload Sample</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <pre className="rounded-md bg-muted p-4 text-xs font-mono overflow-x-auto">
+{`{
+  "event": "opened",
+  "campaign_id": "${detailProject.uniqueId}",
+  "email": "user@example.com",
+  "timestamp": "${new Date().toISOString()}",
+  "ip": "203.0.113.42",
+  "user_agent": "Mozilla/5.0...",
+  "metadata": {
+    "client_id": "${detailProject.clientId}",
+    "project_type": "${detailProject.projectType}"
+  }
+}`}
+                      </pre>
                     </CardContent>
                   </Card>
                 </TabsContent>

@@ -10,7 +10,7 @@ import {
   Target,
   Monitor,
   BarChart3,
-  RefreshCcw,
+  // RefreshCcw removed
   UserPlus,
   Settings,
   Shield,
@@ -98,14 +98,6 @@ export const moduleGroups: NavGroup[] = [
     icon: BarChart3,
     items: [
       { title: 'Analytics', href: '/metrics/analytics', icon: BarChart3 },
-    ],
-  },
-  {
-    title: 'Reconnect',
-    icon: RefreshCcw,
-    items: [
-      { title: 'Upload Campaign', href: '/reconnect/upload-campaign', icon: RefreshCcw },
-      { title: 'All Campaigns', href: '/reconnect/all-campaigns', icon: RefreshCcw },
     ],
   },
 ];
