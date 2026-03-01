@@ -67,9 +67,7 @@ const App = () => (
               {/* Metrics */}
               <Route path="/metrics/analytics" element={<PlaceholderPage />} />
               
-              {/* Reconnect */}
-              <Route path="/reconnect/upload-campaign" element={<PlaceholderPage />} />
-              <Route path="/reconnect/all-campaigns" element={<PlaceholderPage />} />
+              {/* Reconnect - removed */}
               
               {/* Administration */}
               <Route path="/administration/add-user" element={<AddUser />} />

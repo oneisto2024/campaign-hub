@@ -392,18 +392,21 @@ const EmailDraft = () => {
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b border-border/50">
+                                    <th className="text-left py-2 font-medium text-muted-foreground w-8">S.No</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Batch</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Valid</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Catch-All</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Total</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Published</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Template</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Controls</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Funnels</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {project.batches.map(batch => (
+                                  {project.batches.map((batch, bIdx) => (
                                     <tr key={batch.id} className="border-b border-border/30 last:border-0">
+                                      <td className="py-3 text-muted-foreground text-xs">{bIdx + 1}</td>
                                       <td className="py-3 font-medium">{batch.batchName}</td>
                                       <td className="py-3"><Badge variant="default">{batch.validCount.toLocaleString()}</Badge></td>
                                       <td className="py-3"><Badge variant="secondary">{batch.catchAllCount.toLocaleString()}</Badge></td>
@@ -413,6 +416,19 @@ const EmailDraft = () => {
                                         <Button variant={batch.template ? 'secondary' : 'outline'} size="sm" onClick={() => openTemplateDialog(project.id, batch.id)}>
                                           <Upload className="h-3 w-3 mr-1" /> {batch.template ? 'Edit Template' : 'Upload Template'}
                                         </Button>
+                                      </td>
+                                      <td className="py-3">
+                                        <div className="flex items-center gap-1">
+                                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast({ title: `Batch "${batch.batchName}" paused` })}>
+                                            <span className="text-destructive">⏸</span> Pause
+                                          </Button>
+                                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast({ title: `Batch "${batch.batchName}" resumed` })}>
+                                            <span className="text-chart-1">▶</span> Resume
+                                          </Button>
+                                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast({ title: 'Scheduler coming soon' })}>
+                                            <Clock className="h-3 w-3 mr-0.5" /> Schedule
+                                          </Button>
+                                        </div>
                                       </td>
                                       <td className="py-3">
                                         <div className="flex items-center gap-2">
@@ -439,7 +455,10 @@ const EmailDraft = () => {
                                         <div key={funnel.id} className="space-y-1">
                                           <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 shadow-sm">
                                             <span className="text-sm font-medium">{funnel.name}</span>
-                                            <Badge variant={funnel.status === 'active' ? 'default' : 'outline'} className="text-xs gap-1">
+                                            <Badge
+                                              variant={funnel.status === 'draft' ? 'outline' : 'default'}
+                                              className={`text-xs gap-1 ${funnel.status === 'active' ? 'bg-chart-1 text-chart-1-foreground hover:bg-chart-1/90' : funnel.status === 'paused' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}`}
+                                            >
                                               {funnel.status === 'active' && <ThumbsUp className="h-3 w-3" />}
                                               {funnel.status === 'active' ? 'Active' : funnel.status === 'paused' ? 'Paused' : 'Draft'}
                                             </Badge>
