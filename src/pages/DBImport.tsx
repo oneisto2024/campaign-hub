@@ -138,6 +138,13 @@ const DBImport = () => {
   });
   const [statusColumnValues, setStatusColumnValues] = useState<string[]>([]);
 
+  // Validation API selection
+  const [selectedValidationApi, setSelectedValidationApi] = useState('');
+  const validationApiAccounts = [
+    { id: '1', name: 'ZeroBounce Primary', isLive: true },
+    { id: '2', name: 'NeverBounce Backup', isLive: false },
+  ];
+
   // Step 3: Suppression
   const [suppressionType, setSuppressionType] = useState<'domain' | 'email' | ''>('');
   const [suppressionFile, setSuppressionFile] = useState<File | null>(null);
@@ -718,9 +725,32 @@ const DBImport = () => {
                       )}
 
                       {isValidationDone === 'no' && (
-                        <p className="text-sm text-muted-foreground pl-4">
-                          Data will be accepted without validation.
-                        </p>
+                        <div className="space-y-4 pl-4">
+                          <p className="text-sm text-muted-foreground">
+                            Data will be accepted without validation. Automatic validation will run after upload.
+                          </p>
+                          <div className="space-y-2 border-t pt-4">
+                            <Label className="font-medium">Select Validation API Account</Label>
+                            <p className="text-xs text-muted-foreground">Choose which API key to use for automatic validation.</p>
+                            <Select value={selectedValidationApi} onValueChange={setSelectedValidationApi}>
+                              <SelectTrigger className="w-72">
+                                <SelectValue placeholder="Select API account" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {validationApiAccounts.map(api => (
+                                  <SelectItem key={api.id} value={api.id}>
+                                    {api.name} {api.isLive ? '(Live — Default)' : '(On Hold)'}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {!selectedValidationApi && (
+                              <p className="text-xs text-chart-4">
+                                The default live API account will be used if none is selected.
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>

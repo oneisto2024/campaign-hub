@@ -135,13 +135,14 @@ export const adminGroups: NavGroup[] = [
     items: [
       { title: 'Upload Email Settings', href: '/email-config/upload-settings', icon: Settings },
       { title: 'Email Validation API', href: '/email-config/validation-api', icon: Shield },
+      { title: 'Webhook & API', href: '/email-config/webhook-api', icon: Link },
     ],
   },
   {
     title: 'GDPR Compliance',
     icon: Search,
     items: [
-      { title: 'Search', href: '/gdpr/search', icon: Search },
+      { title: 'Data & Consent', href: '/gdpr/compliance', icon: Search },
     ],
   },
   {
