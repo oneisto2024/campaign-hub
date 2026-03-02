@@ -16,6 +16,8 @@ import AllProjects from "./pages/AllProjects";
 import DBImport from "./pages/DBImport";
 import EmailValidationAPI from "./pages/EmailValidationAPI";
 import UploadEmailSettings from "./pages/UploadEmailSettings";
+import WebhookConfig from "./pages/WebhookConfig";
+import GDPRCompliance from "./pages/GDPRCompliance";
 import AddUser from "./pages/AddUser";
 import AllowedDomains from "./pages/AllowedDomains";
 import ManageUsers from "./pages/ManageUsers";
@@ -82,10 +84,11 @@ const App = () => (
               {/* Email Config */}
               <Route path="/email-config/upload-settings" element={<UploadEmailSettings />} />
               <Route path="/email-config/validation-api" element={<EmailValidationAPI />} />
+              <Route path="/email-config/webhook-api" element={<WebhookConfig />} />
               
               {/* GDPR */}
-              <Route path="/gdpr/search" element={<PlaceholderPage />} />
-              
+              <Route path="/gdpr/compliance" element={<GDPRCompliance />} />
+
               {/* Ask AI */}
               <Route path="/ask-ai/search-email" element={<PlaceholderPage />} />
               <Route path="/ask-ai/search-assets" element={<PlaceholderPage />} />
