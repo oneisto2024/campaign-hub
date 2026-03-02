@@ -377,7 +377,7 @@ const EmailDraft = () => {
                       <div className="bg-muted/20">
                         {clientProjects.map((project) =>
                       <div key={project.id} className="border-t border-border/50">
-                            <div className="px-6 py-3 flex items-center justify-between bg-rose-50 shadow-none">
+                            <div className="px-6 py-3 flex items-center justify-between shadow-none bg-purple-50">
                               <div className="flex items-center gap-3">
                                 <span className="font-medium text-sm">{project.projectName}</span>
                                 <span className="font-mono text-xs text-muted-foreground">{project.uniqueId}</span>
