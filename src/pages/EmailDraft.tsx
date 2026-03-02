@@ -11,34 +11,34 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
-} from '@/components/ui/dialog';
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from
+'@/components/ui/dialog';
 import {
-  Collapsible, CollapsibleContent, CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+  Collapsible, CollapsibleContent, CollapsibleTrigger } from
+'@/components/ui/collapsible';
 import {
   Search, ChevronDown, ChevronRight, Mail, Upload, Clock, Send, Plus, Trash2, CalendarIcon, MoreVertical,
-  ThumbsUp, Eye, Copy, ExternalLink, TestTube,
-} from 'lucide-react';
+  ThumbsUp, Eye, Copy, ExternalLink, TestTube } from
+'lucide-react';
 import HolidayBanner from '@/components/HolidayBanner';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from
+'@/components/ui/dropdown-menu';
 import { format, addDays, addHours } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 // Mock email accounts from Email Config
 const MOCK_EMAIL_ACCOUNTS = [
-  { id: '1', accountName: 'AWS SES Production', email: 'noreply@company.com' },
-  { id: '2', accountName: 'SendGrid Backup', email: 'outreach@company.com' },
-];
+{ id: '1', accountName: 'AWS SES Production', email: 'noreply@company.com' },
+{ id: '2', accountName: 'SendGrid Backup', email: 'outreach@company.com' }];
+
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const PROJECT_TYPES = [
-  'ABM Campaign', 'Webinar', 'Click Campaign', 'MQL Campaign', 'Lead Generation', 'Funnel Set',
-];
+'ABM Campaign', 'Webinar', 'Click Campaign', 'MQL Campaign', 'Lead Generation', 'Funnel Set'];
+
 
 interface FunnelStep {
   id: string;
@@ -88,26 +88,26 @@ interface EmailDraftProject {
 
 // Mock data
 const MOCK_PROJECTS: EmailDraftProject[] = [
-  {
-    id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
-    batches: [
-      { id: 'b1', batchName: 'Batch 1', validCount: 3200, catchAllCount: 800, totalCount: 4000, publishedAt: new Date('2026-01-15'), funnels: [] },
-      { id: 'b2', batchName: 'Batch 2', validCount: 1500, catchAllCount: 300, totalCount: 1800, publishedAt: new Date('2026-01-20'), funnels: [] },
-    ],
-  },
-  {
-    id: '2', clientId: 'ACME001', projectName: 'Q2 Webinar Follow-up', uniqueId: 'PRJ-2026-005',
-    batches: [
-      { id: 'b3', batchName: 'Batch 1', validCount: 2100, catchAllCount: 400, totalCount: 2500, publishedAt: new Date('2026-02-01'), funnels: [] },
-    ],
-  },
-  {
-    id: '3', clientId: 'GLOB003', projectName: 'ABM Campaign - Fortune 500', uniqueId: 'PRJ-2026-003',
-    batches: [
-      { id: 'b4', batchName: 'Batch 1', validCount: 8000, catchAllCount: 2000, totalCount: 10000, publishedAt: new Date('2026-01-25'), funnels: [] },
-    ],
-  },
-];
+{
+  id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
+  batches: [
+  { id: 'b1', batchName: 'Batch 1', validCount: 3200, catchAllCount: 800, totalCount: 4000, publishedAt: new Date('2026-01-15'), funnels: [] },
+  { id: 'b2', batchName: 'Batch 2', validCount: 1500, catchAllCount: 300, totalCount: 1800, publishedAt: new Date('2026-01-20'), funnels: [] }]
+
+},
+{
+  id: '2', clientId: 'ACME001', projectName: 'Q2 Webinar Follow-up', uniqueId: 'PRJ-2026-005',
+  batches: [
+  { id: 'b3', batchName: 'Batch 1', validCount: 2100, catchAllCount: 400, totalCount: 2500, publishedAt: new Date('2026-02-01'), funnels: [] }]
+
+},
+{
+  id: '3', clientId: 'GLOB003', projectName: 'ABM Campaign - Fortune 500', uniqueId: 'PRJ-2026-003',
+  batches: [
+  { id: 'b4', batchName: 'Batch 1', validCount: 8000, catchAllCount: 2000, totalCount: 10000, publishedAt: new Date('2026-01-25'), funnels: [] }]
+
+}];
+
 
 const EmailDraft = () => {
   const navigate = useNavigate();
@@ -116,40 +116,40 @@ const EmailDraft = () => {
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
 
   // Template dialog
-  const [templateDialog, setTemplateDialog] = useState<{ projectId: string; batchId: string } | null>(null);
+  const [templateDialog, setTemplateDialog] = useState<{projectId: string;batchId: string;} | null>(null);
   const [template, setTemplate] = useState<EmailTemplate>({
-    htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now',
+    htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now'
   });
 
   // Funnel dialog
-  const [funnelDialog, setFunnelDialog] = useState<{ projectId: string; batchId: string } | null>(null);
+  const [funnelDialog, setFunnelDialog] = useState<{projectId: string;batchId: string;} | null>(null);
   const [newFunnelName, setNewFunnelName] = useState('');
 
   // Funnel step editor
-  const [editingFunnel, setEditingFunnel] = useState<{ projectId: string; batchId: string; funnelId: string } | null>(null);
+  const [editingFunnel, setEditingFunnel] = useState<{projectId: string;batchId: string;funnelId: string;} | null>(null);
 
   // HTML Preview dialog
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
 
   // Send Test dialog
-  const [sendTestDialog, setSendTestDialog] = useState<{ stepId: string } | null>(null);
+  const [sendTestDialog, setSendTestDialog] = useState<{stepId: string;} | null>(null);
   const [testEmail, setTestEmail] = useState({ name: '', email: '', fromAccountId: '' });
 
   // Publish dialog
-  const [publishDialog, setPublishDialog] = useState<{ projectId: string } | null>(null);
+  const [publishDialog, setPublishDialog] = useState<{projectId: string;} | null>(null);
   const [selectedProjectType, setSelectedProjectType] = useState('');
 
   // Group projects by clientId
   const groupedProjects = useMemo(() => {
-    const filtered = searchQuery
-      ? projects.filter(p =>
-          p.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.clientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.uniqueId.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : projects;
+    const filtered = searchQuery ?
+    projects.filter((p) =>
+    p.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.clientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.uniqueId.toLowerCase().includes(searchQuery.toLowerCase())
+    ) :
+    projects;
     const groups: Record<string, EmailDraftProject[]> = {};
-    filtered.forEach(p => {
+    filtered.forEach((p) => {
       if (!groups[p.clientId]) groups[p.clientId] = [];
       groups[p.clientId].push(p);
     });
@@ -163,30 +163,30 @@ const EmailDraft = () => {
   };
 
   const getClientTotals = (clientProjects: EmailDraftProject[]) => {
-    let valid = 0, catchAll = 0, total = 0;
-    clientProjects.forEach(p => p.batches.forEach(b => {
-      valid += b.validCount; catchAll += b.catchAllCount; total += b.totalCount;
+    let valid = 0,catchAll = 0,total = 0;
+    clientProjects.forEach((p) => p.batches.forEach((b) => {
+      valid += b.validCount;catchAll += b.catchAllCount;total += b.totalCount;
     }));
     return { valid, catchAll, total };
   };
 
   const openTemplateDialog = (projectId: string, batchId: string) => {
-    const project = projects.find(p => p.id === projectId);
-    const batch = project?.batches.find(b => b.id === batchId);
-    if (batch?.template) setTemplate(batch.template);
-    else setTemplate({ htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now' });
+    const project = projects.find((p) => p.id === projectId);
+    const batch = project?.batches.find((b) => b.id === batchId);
+    if (batch?.template) setTemplate(batch.template);else
+    setTemplate({ htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now' });
     setTemplateDialog({ projectId, batchId });
   };
 
   const saveTemplate = () => {
-    if (!template.subjectLine.trim()) { toast({ title: 'Subject line is required', variant: 'destructive' }); return; }
-    if (!template.emailAccountId) { toast({ title: 'Select an email account', variant: 'destructive' }); return; }
-    if (template.sendType === 'schedule' && !template.scheduledDate) { toast({ title: 'Select a schedule date', variant: 'destructive' }); return; }
+    if (!template.subjectLine.trim()) {toast({ title: 'Subject line is required', variant: 'destructive' });return;}
+    if (!template.emailAccountId) {toast({ title: 'Select an email account', variant: 'destructive' });return;}
+    if (template.sendType === 'schedule' && !template.scheduledDate) {toast({ title: 'Select a schedule date', variant: 'destructive' });return;}
     if (templateDialog) {
-      setProjects(prev => prev.map(p =>
-        p.id === templateDialog.projectId
-          ? { ...p, batches: p.batches.map(b => b.id === templateDialog.batchId ? { ...b, template: { ...template } } : b) }
-          : p
+      setProjects((prev) => prev.map((p) =>
+      p.id === templateDialog.projectId ?
+      { ...p, batches: p.batches.map((b) => b.id === templateDialog.batchId ? { ...b, template: { ...template } } : b) } :
+      p
       ));
       toast({ title: 'Template saved successfully' });
     }
@@ -194,13 +194,13 @@ const EmailDraft = () => {
   };
 
   const createFunnel = (projectId: string, batchId: string) => {
-    if (!newFunnelName.trim()) { toast({ title: 'Enter a funnel name', variant: 'destructive' }); return; }
+    if (!newFunnelName.trim()) {toast({ title: 'Enter a funnel name', variant: 'destructive' });return;}
     const newFunnel: Funnel = {
       id: Date.now().toString(), name: newFunnelName.trim(), status: 'draft',
-      steps: [{ id: '1', delayDays: 0, delayHours: 1, subject: '', previewText: '', htmlContent: '', sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] }],
+      steps: [{ id: '1', delayDays: 0, delayHours: 1, subject: '', previewText: '', htmlContent: '', sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] }]
     };
-    setProjects(prev => prev.map(p =>
-      p.id === projectId ? { ...p, batches: p.batches.map(b => b.id === batchId ? { ...b, funnels: [...b.funnels, newFunnel] } : b) } : p
+    setProjects((prev) => prev.map((p) =>
+    p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: [...b.funnels, newFunnel] } : b) } : p
     ));
     setNewFunnelName('');
     setFunnelDialog(null);
@@ -208,70 +208,70 @@ const EmailDraft = () => {
   };
 
   const toggleFunnelStatus = (projectId: string, batchId: string, funnelId: string) => {
-    setProjects(prev => prev.map(p =>
-      p.id === projectId
-        ? { ...p, batches: p.batches.map(b => b.id === batchId ? { ...b, funnels: b.funnels.map(f => f.id === funnelId ? { ...f, status: f.status === 'active' ? 'paused' : 'active' } : f) } : b) }
-        : p
+    setProjects((prev) => prev.map((p) =>
+    p.id === projectId ?
+    { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: b.funnels.map((f) => f.id === funnelId ? { ...f, status: f.status === 'active' ? 'paused' : 'active' } : f) } : b) } :
+    p
     ));
   };
 
   const deleteFunnel = (projectId: string, batchId: string, funnelId: string) => {
-    setProjects(prev => prev.map(p =>
-      p.id === projectId ? { ...p, batches: p.batches.map(b => b.id === batchId ? { ...b, funnels: b.funnels.filter(f => f.id !== funnelId) } : b) } : p
+    setProjects((prev) => prev.map((p) =>
+    p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: b.funnels.filter((f) => f.id !== funnelId) } : b) } : p
     ));
     toast({ title: 'Funnel deleted' });
   };
 
   const addFunnelStep = (projectId: string, batchId: string, funnelId: string) => {
-    setProjects(prev => prev.map(p =>
-      p.id === projectId
-        ? { ...p, batches: p.batches.map(b => b.id === batchId ? { ...b, funnels: b.funnels.map(f => f.id === funnelId ? { ...f, steps: [...f.steps, { id: Date.now().toString(), delayDays: 1, delayHours: 0, subject: '', previewText: '', htmlContent: '', sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] }] } : f) } : b) }
-        : p
+    setProjects((prev) => prev.map((p) =>
+    p.id === projectId ?
+    { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: b.funnels.map((f) => f.id === funnelId ? { ...f, steps: [...f.steps, { id: Date.now().toString(), delayDays: 1, delayHours: 0, subject: '', previewText: '', htmlContent: '', sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] }] } : f) } : b) } :
+    p
     ));
   };
 
   const duplicateFunnelStep = (projectId: string, batchId: string, funnelId: string, stepId: string) => {
-    setProjects(prev => prev.map(p =>
-      p.id === projectId
-        ? {
-            ...p, batches: p.batches.map(b => b.id === batchId ? {
-              ...b, funnels: b.funnels.map(f => {
-                if (f.id !== funnelId) return f;
-                const idx = f.steps.findIndex(s => s.id === stepId);
-                if (idx === -1) return f;
-                const clone = { ...f.steps[idx], id: Date.now().toString() };
-                const newSteps = [...f.steps];
-                newSteps.splice(idx + 1, 0, clone);
-                return { ...f, steps: newSteps };
-              })
-            } : b)
-          }
-        : p
+    setProjects((prev) => prev.map((p) =>
+    p.id === projectId ?
+    {
+      ...p, batches: p.batches.map((b) => b.id === batchId ? {
+        ...b, funnels: b.funnels.map((f) => {
+          if (f.id !== funnelId) return f;
+          const idx = f.steps.findIndex((s) => s.id === stepId);
+          if (idx === -1) return f;
+          const clone = { ...f.steps[idx], id: Date.now().toString() };
+          const newSteps = [...f.steps];
+          newSteps.splice(idx + 1, 0, clone);
+          return { ...f, steps: newSteps };
+        })
+      } : b)
+    } :
+    p
     ));
     toast({ title: 'Step duplicated' });
   };
 
   const updateFunnelStep = (projectId: string, batchId: string, funnelId: string, stepId: string, updates: Partial<FunnelStep>) => {
-    setProjects(prev => prev.map(p =>
-      p.id === projectId
-        ? { ...p, batches: p.batches.map(b => b.id === batchId ? { ...b, funnels: b.funnels.map(f => f.id === funnelId ? { ...f, steps: f.steps.map(s => s.id === stepId ? { ...s, ...updates } : s) } : f) } : b) }
-        : p
+    setProjects((prev) => prev.map((p) =>
+    p.id === projectId ?
+    { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: b.funnels.map((f) => f.id === funnelId ? { ...f, steps: f.steps.map((s) => s.id === stepId ? { ...s, ...updates } : s) } : f) } : b) } :
+    p
     ));
   };
 
   const removeFunnelStep = (projectId: string, batchId: string, funnelId: string, stepId: string) => {
-    setProjects(prev => prev.map(p =>
-      p.id === projectId
-        ? { ...p, batches: p.batches.map(b => b.id === batchId ? { ...b, funnels: b.funnels.map(f => f.id === funnelId ? { ...f, steps: f.steps.filter(s => s.id !== stepId) } : f) } : b) }
-        : p
+    setProjects((prev) => prev.map((p) =>
+    p.id === projectId ?
+    { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: b.funnels.map((f) => f.id === funnelId ? { ...f, steps: f.steps.filter((s) => s.id !== stepId) } : f) } : b) } :
+    p
     ));
   };
 
   const getEditingFunnelData = () => {
     if (!editingFunnel) return null;
-    const project = projects.find(p => p.id === editingFunnel.projectId);
-    const batch = project?.batches.find(b => b.id === editingFunnel.batchId);
-    return batch?.funnels.find(f => f.id === editingFunnel.funnelId) || null;
+    const project = projects.find((p) => p.id === editingFunnel.projectId);
+    const batch = project?.batches.find((b) => b.id === editingFunnel.batchId);
+    return batch?.funnels.find((f) => f.id === editingFunnel.funnelId) || null;
   };
 
   const currentFunnel = getEditingFunnelData();
@@ -306,8 +306,8 @@ const EmailDraft = () => {
   };
 
   const handlePublish = (projectId: string) => {
-    if (!selectedProjectType) { toast({ title: 'Select a project type', variant: 'destructive' }); return; }
-    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, projectType: selectedProjectType } : p));
+    if (!selectedProjectType) {toast({ title: 'Select a project type', variant: 'destructive' });return;}
+    setProjects((prev) => prev.map((p) => p.id === projectId ? { ...p, projectType: selectedProjectType } : p));
     toast({ title: `Project published as "${selectedProjectType}"` });
     setPublishDialog(null);
     setSelectedProjectType('');
@@ -339,16 +339,16 @@ const EmailDraft = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {Object.keys(groupedProjects).length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">No projects found</div>
-          ) : (
-            <div className="divide-y divide-border">
-              {Object.entries(groupedProjects).map(([clientId, clientProjects]) => {
-                const totals = getClientTotals(clientProjects);
-                const isExpanded = expandedClients.has(clientId);
+          {Object.keys(groupedProjects).length === 0 ?
+          <div className="p-8 text-center text-muted-foreground">No projects found</div> :
 
-                return (
-                  <Collapsible key={clientId} open={isExpanded} onOpenChange={() => toggleClient(clientId)}>
+          <div className="divide-y divide-border">
+              {Object.entries(groupedProjects).map(([clientId, clientProjects]) => {
+              const totals = getClientTotals(clientProjects);
+              const isExpanded = expandedClients.has(clientId);
+
+              return (
+                <Collapsible key={clientId} open={isExpanded} onOpenChange={() => toggleClient(clientId)}>
                     <CollapsibleTrigger asChild>
                       <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
                         <div className="flex items-center gap-3">
@@ -375,15 +375,15 @@ const EmailDraft = () => {
 
                     <CollapsibleContent>
                       <div className="bg-muted/20">
-                        {clientProjects.map(project => (
-                          <div key={project.id} className="border-t border-border/50">
-                            <div className="px-6 py-3 flex items-center justify-between bg-muted/30">
+                        {clientProjects.map((project) =>
+                      <div key={project.id} className="border-t border-border/50">
+                            <div className="px-6 py-3 flex items-center justify-between bg-rose-50 shadow-none">
                               <div className="flex items-center gap-3">
                                 <span className="font-medium text-sm">{project.projectName}</span>
                                 <span className="font-mono text-xs text-muted-foreground">{project.uniqueId}</span>
                                 {project.projectType && <Badge variant="outline" className="text-xs">{project.projectType}</Badge>}
                               </div>
-                              <Button size="sm" variant={project.projectType ? 'secondary' : 'default'} onClick={() => { setPublishDialog({ projectId: project.id }); setSelectedProjectType(project.projectType || ''); }}>
+                              <Button size="sm" variant={project.projectType ? 'secondary' : 'default'} onClick={() => {setPublishDialog({ projectId: project.id });setSelectedProjectType(project.projectType || '');}}>
                                 <Send className="h-3 w-3 mr-1" /> {project.projectType ? 'Re-publish' : 'Publish'}
                               </Button>
                             </div>
@@ -404,8 +404,8 @@ const EmailDraft = () => {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {project.batches.map((batch, bIdx) => (
-                                    <tr key={batch.id} className="border-b border-border/30 last:border-0">
+                                  {project.batches.map((batch, bIdx) =>
+                              <tr key={batch.id} className="border-b border-border/30 last:border-0">
                                       <td className="py-3 text-muted-foreground text-xs">{bIdx + 1}</td>
                                       <td className="py-3 font-medium">{batch.batchName}</td>
                                       <td className="py-3"><Badge variant="default">{batch.validCount.toLocaleString()}</Badge></td>
@@ -439,26 +439,26 @@ const EmailDraft = () => {
                                         </div>
                                       </td>
                                     </tr>
-                                  ))}
+                              )}
                                 </tbody>
                               </table>
 
                               {/* Funnels display per batch */}
-                              {project.batches.map(batch =>
-                                batch.funnels.length > 0 && (
-                                  <div key={`funnels-${batch.id}`} className="mt-3 space-y-2">
+                              {project.batches.map((batch) =>
+                          batch.funnels.length > 0 &&
+                          <div key={`funnels-${batch.id}`} className="mt-3 space-y-2">
                                     <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                       {batch.batchName} — Funnels
                                     </h5>
                                     <div className="flex flex-wrap gap-3">
-                                      {batch.funnels.map(funnel => (
-                                        <div key={funnel.id} className="space-y-1">
+                                      {batch.funnels.map((funnel) =>
+                              <div key={funnel.id} className="space-y-1">
                                           <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 shadow-sm">
                                             <span className="text-sm font-medium">{funnel.name}</span>
                                             <Badge
-                                              variant={funnel.status === 'draft' ? 'outline' : 'default'}
-                                              className={`text-xs gap-1 ${funnel.status === 'active' ? 'bg-chart-1 text-chart-1-foreground hover:bg-chart-1/90' : funnel.status === 'paused' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}`}
-                                            >
+                                    variant={funnel.status === 'draft' ? 'outline' : 'default'}
+                                    className={`text-xs gap-1 ${funnel.status === 'active' ? 'bg-chart-1 text-chart-1-foreground hover:bg-chart-1/90' : funnel.status === 'paused' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}`}>
+                                    
                                               {funnel.status === 'active' && <ThumbsUp className="h-3 w-3" />}
                                               {funnel.status === 'active' ? 'Active' : funnel.status === 'paused' ? 'Paused' : 'Draft'}
                                             </Badge>
@@ -474,27 +474,27 @@ const EmailDraft = () => {
                                             </DropdownMenu>
                                           </div>
                                           {/* Next trigger note */}
-                                          {funnel.status === 'active' && (
-                                            <p className="text-[11px] text-muted-foreground pl-1">
+                                          {funnel.status === 'active' &&
+                                <p className="text-[11px] text-muted-foreground pl-1">
                                               {getNextTriggerText(funnel)}
                                             </p>
-                                          )}
+                                }
                                         </div>
-                                      ))}
+                              )}
                                     </div>
                                   </div>
-                                )
-                              )}
+
+                          )}
                             </div>
                           </div>
-                        ))}
+                      )}
                       </div>
                     </CollapsibleContent>
-                  </Collapsible>
-                );
-              })}
+                  </Collapsible>);
+
+            })}
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
@@ -528,9 +528,9 @@ const EmailDraft = () => {
               <Select value={template.emailAccountId} onValueChange={(v) => setTemplate({ ...template, emailAccountId: v })}>
                 <SelectTrigger><SelectValue placeholder="Select email account" /></SelectTrigger>
                 <SelectContent>
-                  {MOCK_EMAIL_ACCOUNTS.map(acc => (
-                    <SelectItem key={acc.id} value={acc.id}>{acc.accountName} ({acc.email})</SelectItem>
-                  ))}
+                  {MOCK_EMAIL_ACCOUNTS.map((acc) =>
+                  <SelectItem key={acc.id} value={acc.id}>{acc.accountName} ({acc.email})</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -544,8 +544,8 @@ const EmailDraft = () => {
                   <Clock className="h-3 w-3 mr-1" /> Schedule
                 </Button>
               </div>
-              {template.sendType === 'schedule' && (
-                <div className="flex items-center gap-4 mt-2">
+              {template.sendType === 'schedule' &&
+              <div className="flex items-center gap-4 mt-2">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-[200px] justify-start text-left font-normal">
@@ -559,7 +559,7 @@ const EmailDraft = () => {
                   </Popover>
                   <Input type="time" value={template.scheduledTime || ''} onChange={(e) => setTemplate({ ...template, scheduledTime: e.target.value })} className="w-[140px]" />
                 </div>
-              )}
+              }
             </div>
           </div>
           <DialogFooter>
@@ -598,11 +598,11 @@ const EmailDraft = () => {
           <DialogHeader>
             <DialogTitle>Funnel Steps — {currentFunnel?.name}</DialogTitle>
           </DialogHeader>
-          {currentFunnel && editingFunnel && (
-            <ScrollArea className="h-[65vh] pr-4">
+          {currentFunnel && editingFunnel &&
+          <ScrollArea className="h-[65vh] pr-4">
               <div className="space-y-4">
-                {currentFunnel.steps.map((step, index) => (
-                  <Card key={step.id} className="relative">
+                {currentFunnel.steps.map((step, index) =>
+              <Card key={step.id} className="relative">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-sm">Step {index + 1}</CardTitle>
@@ -624,11 +624,11 @@ const EmailDraft = () => {
                             <Copy className="h-3 w-3" />
                           </Button>
                           {/* Delete */}
-                          {currentFunnel.steps.length > 1 && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id)}>
+                          {currentFunnel.steps.length > 1 &&
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id)}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
-                          )}
+                      }
                         </div>
                       </div>
                     </CardHeader>
@@ -659,34 +659,34 @@ const EmailDraft = () => {
                       <div className="space-y-2">
                         <Label className="text-xs">Send on these days</Label>
                         <div className="flex flex-wrap gap-2">
-                          {DAYS_OF_WEEK.map(day => {
-                            const isChecked = step.sendDays.includes(day);
-                            return (
-                              <div key={day} className="flex items-center gap-1.5">
+                          {DAYS_OF_WEEK.map((day) => {
+                        const isChecked = step.sendDays.includes(day);
+                        return (
+                          <div key={day} className="flex items-center gap-1.5">
                                 <Checkbox id={`${step.id}-${day}`} checked={isChecked} onCheckedChange={(checked) => {
-                                  const newDays = checked ? [...step.sendDays, day] : step.sendDays.filter(d => d !== day);
-                                  updateFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id, { sendDays: newDays });
-                                }} />
+                              const newDays = checked ? [...step.sendDays, day] : step.sendDays.filter((d) => d !== day);
+                              updateFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId, step.id, { sendDays: newDays });
+                            }} />
                                 <label htmlFor={`${step.id}-${day}`} className="text-xs">{day.slice(0, 3)}</label>
-                              </div>
-                            );
-                          })}
+                              </div>);
+
+                      })}
                         </div>
                       </div>
                     </CardContent>
-                    {index < currentFunnel.steps.length - 1 && (
-                      <div className="flex justify-center py-1 text-muted-foreground"><ChevronDown className="h-5 w-5" /></div>
-                    )}
+                    {index < currentFunnel.steps.length - 1 &&
+                <div className="flex justify-center py-1 text-muted-foreground"><ChevronDown className="h-5 w-5" /></div>
+                }
                   </Card>
-                ))}
+              )}
                 <Button variant="outline" className="w-full" onClick={() => addFunnelStep(editingFunnel.projectId, editingFunnel.batchId, editingFunnel.funnelId)}>
                   <Plus className="h-4 w-4 mr-2" /> Add Step
                 </Button>
               </div>
             </ScrollArea>
-          )}
+          }
           <DialogFooter>
-            <Button onClick={() => { setEditingFunnel(null); toast({ title: 'Funnel steps saved' }); }}>Done</Button>
+            <Button onClick={() => {setEditingFunnel(null);toast({ title: 'Funnel steps saved' });}}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -731,9 +731,9 @@ const EmailDraft = () => {
               <Select value={testEmail.fromAccountId} onValueChange={(v) => setTestEmail({ ...testEmail, fromAccountId: v })}>
                 <SelectTrigger><SelectValue placeholder="Select email account" /></SelectTrigger>
                 <SelectContent>
-                  {MOCK_EMAIL_ACCOUNTS.map(acc => (
-                    <SelectItem key={acc.id} value={acc.id}>{acc.accountName} ({acc.email})</SelectItem>
-                  ))}
+                  {MOCK_EMAIL_ACCOUNTS.map((acc) =>
+                  <SelectItem key={acc.id} value={acc.id}>{acc.accountName} ({acc.email})</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -758,9 +758,9 @@ const EmailDraft = () => {
               <Select value={selectedProjectType} onValueChange={setSelectedProjectType}>
                 <SelectTrigger><SelectValue placeholder="Select project type" /></SelectTrigger>
                 <SelectContent>
-                  {PROJECT_TYPES.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
+                  {PROJECT_TYPES.map((type) =>
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -773,8 +773,8 @@ const EmailDraft = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>);
+
 };
 
 export default EmailDraft;
