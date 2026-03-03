@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Search, ChevronDown, ChevronRight, Mail, Eye, BarChart3, Globe, Settings, Activity,
   MousePointerClick, Users, ArrowUpRight, ArrowDownRight, TrendingUp, Reply, GitBranch, Download,
-  Webhook, Link2, FileJson, Server, Filter,
+  Webhook, Link2, FileJson, Server, Filter, Info,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   ChartContainer, ChartTooltip, ChartTooltipContent,
 } from '@/components/ui/chart';
@@ -44,6 +45,7 @@ interface SendingProject {
   projectType: string;
   sentAt: Date;
   sentFromEmail: string;
+  countries: string[];
   totalDB: number;
   sent: number;
   delivered: number;
@@ -77,7 +79,7 @@ interface SendingProject {
 const MOCK_DATA: SendingProject[] = [
   {
     id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
-    projectType: 'Lead Generation', sentAt: new Date('2026-01-20'), sentFromEmail: 'outreach@acme-campaigns.com', totalDB: 4000, sent: 3800, delivered: 3650,
+    projectType: 'Lead Generation', sentAt: new Date('2026-01-20'), sentFromEmail: 'outreach@acme-campaigns.com', countries: ['United States', 'Canada'], totalDB: 4000, sent: 3800, delivered: 3650,
     opens: 1825, uniqueOpens: 1200, clicks: 456, uniqueClicks: 320, bounced: 80, softBounced: 70,
     unsubscribed: 23, complained: 2, replied: 45, funnelCount: 2, hasFunnel: true,
     funnelStats: [
@@ -126,7 +128,7 @@ const MOCK_DATA: SendingProject[] = [
   },
   {
     id: '2', clientId: 'ACME001', projectName: 'Q2 Webinar Follow-up', uniqueId: 'PRJ-2026-005',
-    projectType: 'Webinar', sentAt: new Date('2026-02-05'), sentFromEmail: 'events@acme-marketing.com', totalDB: 2500, sent: 2400, delivered: 2350,
+    projectType: 'Webinar', sentAt: new Date('2026-02-05'), sentFromEmail: 'events@acme-marketing.com', countries: ['Germany'], totalDB: 2500, sent: 2400, delivered: 2350,
     opens: 1410, uniqueOpens: 950, clicks: 380, uniqueClicks: 280, bounced: 30, softBounced: 20,
     unsubscribed: 8, complained: 1, replied: 22, funnelCount: 0, hasFunnel: false, funnelStats: [],
     templateHtml: '<html><body><h1>Webinar Invite</h1><a href="https://example.com/register">Register Now</a></body></html>',
@@ -156,7 +158,7 @@ const MOCK_DATA: SendingProject[] = [
   },
   {
     id: '3', clientId: 'GLOB003', projectName: 'ABM Campaign - Fortune 500', uniqueId: 'PRJ-2026-003',
-    projectType: 'ABM Campaign', sentAt: new Date('2026-01-28'), sentFromEmail: 'sales@globex-outreach.com', totalDB: 10000, sent: 9500, delivered: 9200,
+    projectType: 'ABM Campaign', sentAt: new Date('2026-01-28'), sentFromEmail: 'sales@globex-outreach.com', countries: ['United States', 'Japan', 'Australia', 'Singapore'], totalDB: 10000, sent: 9500, delivered: 9200,
     opens: 4600, uniqueOpens: 3200, clicks: 1380, uniqueClicks: 980, bounced: 180, softBounced: 120,
     unsubscribed: 45, complained: 5, replied: 120, funnelCount: 3, hasFunnel: true,
     funnelStats: [
@@ -349,6 +351,23 @@ const EmailSending = () => {
   const clickRate = (p: SendingProject) => p.delivered > 0 ? ((p.uniqueClicks / p.delivered) * 100).toFixed(1) : '0';
   const bounceRate = (p: SendingProject) => p.sent > 0 ? (((p.bounced + p.softBounced) / p.sent) * 100).toFixed(1) : '0';
 
+  const renderCountryCell = (countries: string[]) => {
+    if (!countries || countries.length === 0) return <span className="text-muted-foreground text-xs">-</span>;
+    if (countries.length === 1) return <Badge variant="outline" className="text-xs">{countries[0]}</Badge>;
+    if (countries.length === 2) return <Badge variant="outline" className="text-xs">{countries.join(', ')}</Badge>;
+    return (
+      <div className="flex items-center gap-1">
+        <Badge variant="outline" className="text-xs">Multiple Countries</Badge>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5"><Info className="h-3 w-3" /></Button>
+          </TooltipTrigger>
+          <TooltipContent><p className="text-xs">{countries.join(', ')}</p></TooltipContent>
+        </Tooltip>
+      </div>
+    );
+  };
+
   const chartConfig = { opens: { label: 'Opens', color: 'hsl(var(--primary))' }, clicks: { label: 'Clicks', color: 'hsl(var(--chart-2))' }, bounces: { label: 'Bounces', color: 'hsl(var(--destructive))' } };
   const domainConfig = { count: { label: 'Emails', color: 'hsl(var(--primary))' } };
 
@@ -471,6 +490,7 @@ const EmailSending = () => {
                                 <span className="font-medium text-sm">{project.projectName}</span>
                                 <span className="font-mono text-xs text-muted-foreground">{project.uniqueId}</span>
                                 <Badge variant="outline" className="text-xs">{project.projectType}</Badge>
+                                {renderCountryCell(project.countries)}
                               </div>
                               <Button size="sm" variant="outline" onClick={() => { setDetailProject(project); setDetailTab('summary'); }}>
                                 <Eye className="h-3 w-3 mr-1" /> Details

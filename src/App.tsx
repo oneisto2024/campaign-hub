@@ -24,6 +24,10 @@ import ManageUsers from "./pages/ManageUsers";
 import AllClients from "./pages/AllClients";
 import EmailDraft from "./pages/EmailDraft";
 import EmailSending from "./pages/EmailSending";
+import Unsubscribe from "./pages/Unsubscribe";
+import UnsubscribeAdmin from "./pages/UnsubscribeAdmin";
+import ListManagement from "./pages/ListManagement";
+import MergeTags from "./pages/MergeTags";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -88,6 +92,16 @@ const App = () => (
               
               {/* GDPR */}
               <Route path="/gdpr/compliance" element={<GDPRCompliance />} />
+
+              {/* Unsubscribe */}
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
+
+              {/* Administration - Unsub Admin */}
+              <Route path="/administration/unsubscribe-log" element={<UnsubscribeAdmin />} />
+              <Route path="/administration/list-management" element={<ListManagement />} />
+
+              {/* Merge Tags */}
+              <Route path="/merge-tags" element={<MergeTags />} />
 
               {/* Ask AI */}
               <Route path="/ask-ai/search-email" element={<PlaceholderPage />} />

@@ -18,8 +18,9 @@ import {
 '@/components/ui/collapsible';
 import {
   Search, ChevronDown, ChevronRight, Mail, Upload, Clock, Send, Plus, Trash2, CalendarIcon, MoreVertical,
-  ThumbsUp, Eye, Copy, ExternalLink, TestTube } from
+  ThumbsUp, Eye, Copy, ExternalLink, TestTube, Info } from
 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import HolidayBanner from '@/components/HolidayBanner';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from
@@ -75,6 +76,8 @@ interface BatchRecord {
   publishedAt: Date;
   template?: EmailTemplate;
   funnels: Funnel[];
+  status: 'active' | 'paused' | 'scheduled' | 'draft';
+  countries: string[];
 }
 
 interface EmailDraftProject {
@@ -91,20 +94,20 @@ const MOCK_PROJECTS: EmailDraftProject[] = [
 {
   id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
   batches: [
-  { id: 'b1', batchName: 'Batch 1', validCount: 3200, catchAllCount: 800, totalCount: 4000, publishedAt: new Date('2026-01-15'), funnels: [] },
-  { id: 'b2', batchName: 'Batch 2', validCount: 1500, catchAllCount: 300, totalCount: 1800, publishedAt: new Date('2026-01-20'), funnels: [] }]
+  { id: 'b1', batchName: 'Batch 1', validCount: 3200, catchAllCount: 800, totalCount: 4000, publishedAt: new Date('2026-01-15'), funnels: [], status: 'active', countries: ['United States', 'Canada'] },
+  { id: 'b2', batchName: 'Batch 2', validCount: 1500, catchAllCount: 300, totalCount: 1800, publishedAt: new Date('2026-01-20'), funnels: [], status: 'draft', countries: ['Germany'] }]
 
 },
 {
   id: '2', clientId: 'ACME001', projectName: 'Q2 Webinar Follow-up', uniqueId: 'PRJ-2026-005',
   batches: [
-  { id: 'b3', batchName: 'Batch 1', validCount: 2100, catchAllCount: 400, totalCount: 2500, publishedAt: new Date('2026-02-01'), funnels: [] }]
+  { id: 'b3', batchName: 'Batch 1', validCount: 2100, catchAllCount: 400, totalCount: 2500, publishedAt: new Date('2026-02-01'), funnels: [], status: 'paused', countries: ['United States', 'Japan', 'Australia', 'Singapore'] }]
 
 },
 {
   id: '3', clientId: 'GLOB003', projectName: 'ABM Campaign - Fortune 500', uniqueId: 'PRJ-2026-003',
   batches: [
-  { id: 'b4', batchName: 'Batch 1', validCount: 8000, catchAllCount: 2000, totalCount: 10000, publishedAt: new Date('2026-01-25'), funnels: [] }]
+  { id: 'b4', batchName: 'Batch 1', validCount: 8000, catchAllCount: 2000, totalCount: 10000, publishedAt: new Date('2026-01-25'), funnels: [], status: 'scheduled', countries: ['India'] }]
 
 }];
 
@@ -213,6 +216,47 @@ const EmailDraft = () => {
     { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: b.funnels.map((f) => f.id === funnelId ? { ...f, status: f.status === 'active' ? 'paused' : 'active' } : f) } : b) } :
     p
     ));
+  };
+
+  const cycleBatchStatus = (projectId: string, batchId: string) => {
+    setProjects((prev) => prev.map((p) =>
+    p.id === projectId ?
+    { ...p, batches: p.batches.map((b) => {
+      if (b.id !== batchId) return b;
+      const next: Record<string, 'active' | 'paused' | 'scheduled' | 'draft'> = { draft: 'active', active: 'paused', paused: 'scheduled', scheduled: 'active' };
+      const newStatus = next[b.status] || 'active';
+      toast({ title: `Batch "${b.batchName}" → ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}` });
+      return { ...b, status: newStatus };
+    }) } : p
+    ));
+  };
+
+  const getBatchStatusBadge = (status: string) => {
+    const map: Record<string, { className: string; label: string }> = {
+      active: { className: 'bg-chart-1 text-chart-1-foreground hover:bg-chart-1/90', label: '● Active' },
+      paused: { className: 'bg-destructive text-destructive-foreground hover:bg-destructive/90', label: '● Paused' },
+      scheduled: { className: 'bg-chart-4 text-chart-4-foreground hover:bg-chart-4/90', label: '● Scheduled' },
+      draft: { className: '', label: '● Draft' },
+    };
+    const s = map[status] || map.draft;
+    return { className: s.className, label: s.label, variant: status === 'draft' ? 'outline' as const : 'default' as const };
+  };
+
+  const renderCountryCell = (countries: string[]) => {
+    if (!countries || countries.length === 0) return <span className="text-muted-foreground">-</span>;
+    if (countries.length === 1) return <span className="text-xs">{countries[0]}</span>;
+    if (countries.length === 2) return <span className="text-xs">{countries.join(', ')}</span>;
+    return (
+      <div className="flex items-center gap-1">
+        <span className="text-xs">Multiple Countries</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5"><Info className="h-3 w-3" /></Button>
+          </TooltipTrigger>
+          <TooltipContent><p className="text-xs">{countries.join(', ')}</p></TooltipContent>
+        </Tooltip>
+      </div>
+    );
   };
 
   const deleteFunnel = (projectId: string, batchId: string, funnelId: string) => {
@@ -395,11 +439,12 @@ const EmailDraft = () => {
                                     <th className="text-left py-2 font-medium text-muted-foreground w-8">S.No</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Batch</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Valid</th>
-                                    <th className="text-left py-2 font-medium text-muted-foreground">Catch-All</th>
+                                     <th className="text-left py-2 font-medium text-muted-foreground">Catch-All</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Total</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Country</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Published</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Template</th>
-                                    <th className="text-left py-2 font-medium text-muted-foreground">Controls</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Status</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Funnels</th>
                                   </tr>
                                 </thead>
@@ -411,6 +456,7 @@ const EmailDraft = () => {
                                       <td className="py-3"><Badge variant="default">{batch.validCount.toLocaleString()}</Badge></td>
                                       <td className="py-3"><Badge variant="secondary">{batch.catchAllCount.toLocaleString()}</Badge></td>
                                       <td className="py-3">{batch.totalCount.toLocaleString()}</td>
+                                      <td className="py-3">{renderCountryCell(batch.countries)}</td>
                                       <td className="py-3 text-muted-foreground">{format(batch.publishedAt, 'MMM dd, yyyy')}</td>
                                       <td className="py-3">
                                         <Button variant={batch.template ? 'secondary' : 'outline'} size="sm" onClick={() => openTemplateDialog(project.id, batch.id)}>
@@ -418,17 +464,18 @@ const EmailDraft = () => {
                                         </Button>
                                       </td>
                                       <td className="py-3">
-                                        <div className="flex items-center gap-1">
-                                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast({ title: `Batch "${batch.batchName}" paused` })}>
-                                            <span className="text-destructive">⏸</span> Pause
-                                          </Button>
-                                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast({ title: `Batch "${batch.batchName}" resumed` })}>
-                                            <span className="text-chart-1">▶</span> Resume
-                                          </Button>
-                                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast({ title: 'Scheduler coming soon' })}>
-                                            <Clock className="h-3 w-3 mr-0.5" /> Schedule
-                                          </Button>
-                                        </div>
+                                        {(() => {
+                                          const s = getBatchStatusBadge(batch.status);
+                                          return (
+                                            <Badge
+                                              variant={s.variant}
+                                              className={`cursor-pointer text-xs ${s.className}`}
+                                              onClick={() => cycleBatchStatus(project.id, batch.id)}
+                                            >
+                                              {s.label}
+                                            </Badge>
+                                          );
+                                        })()}
                                       </td>
                                       <td className="py-3">
                                         <div className="flex items-center gap-2">
