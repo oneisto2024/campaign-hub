@@ -10,7 +10,6 @@ import {
   Target,
   Monitor,
   BarChart3,
-  // RefreshCcw removed
   UserPlus,
   Settings,
   Shield,
@@ -22,6 +21,8 @@ import {
   Link,
   UserMinus,
   Building2,
+  Tags,
+  ShieldBan,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -39,6 +40,7 @@ export interface NavGroup {
 
 export const mainNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { title: 'Merge Tags', href: '/merge-tags', icon: Tags },
   { title: 'My Calendar', href: '/my-calendar', icon: Calendar },
   { title: 'Profile', href: '/profile', icon: User },
 ];
@@ -120,6 +122,8 @@ export const adminGroups: NavGroup[] = [
       { title: 'Access Restriction', href: '/administration/access-restriction', icon: Lock },
       { title: 'Allowed Domains', href: '/administration/allowed-domains', icon: Globe },
       { title: 'Generate ET', href: '/administration/generate-et', icon: Key },
+      { title: 'Unsubscribe Log', href: '/administration/unsubscribe-log', icon: UserMinus },
+      { title: 'List Management', href: '/administration/list-management', icon: ShieldBan },
     ],
   },
   {

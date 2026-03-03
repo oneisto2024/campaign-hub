@@ -8,10 +8,13 @@ import {
   MousePointer,
   Download,
   FolderKanban,
+  Tags,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import StatsCard from '@/components/dashboard/StatsCard';
 import WelcomeBanner from '@/components/dashboard/WelcomeBanner';
 import HolidayBanner from '@/components/HolidayBanner';
+import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   return (
@@ -23,6 +26,11 @@ const Dashboard = () => {
             Overview of your campaign performance
           </p>
         </div>
+        <Button asChild variant="outline">
+          <Link to="/merge-tags">
+            <Tags className="h-4 w-4 mr-2" /> Merge Tags
+          </Link>
+        </Button>
       </div>
 
       <HolidayBanner />
