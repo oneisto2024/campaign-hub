@@ -17,17 +17,18 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger } from
 '@/components/ui/collapsible';
 import {
-  Search, ChevronDown, ChevronRight, Mail, Upload, Clock, Send, Plus, Trash2, CalendarIcon, MoreVertical,
-  ThumbsUp, Eye, Copy, ExternalLink, TestTube, Info } from
+    Search, ChevronDown, ChevronRight, Mail, Upload, Clock, Send, Plus, Trash2, CalendarIcon, MoreVertical,
+    ThumbsUp, Eye, Copy, ExternalLink, TestTube, Info, Tags } from
 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import HolidayBanner from '@/components/HolidayBanner';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from
 '@/components/ui/dropdown-menu';
 import { format, addDays, addHours } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useSeedLists } from '@/contexts/SeedListContext';
 
 // Mock email accounts from Email Config
 const MOCK_EMAIL_ACCOUNTS = [
@@ -114,6 +115,7 @@ const MOCK_PROJECTS: EmailDraftProject[] = [
 
 const EmailDraft = () => {
   const navigate = useNavigate();
+  const { seedLists } = useSeedLists();
   const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState<EmailDraftProject[]>(MOCK_PROJECTS);
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
@@ -136,7 +138,7 @@ const EmailDraft = () => {
 
   // Send Test dialog
   const [sendTestDialog, setSendTestDialog] = useState<{stepId: string;} | null>(null);
-  const [testEmail, setTestEmail] = useState({ name: '', email: '', fromAccountId: '' });
+  const [testEmail, setTestEmail] = useState({ name: '', email: '', fromAccountId: '', seedListId: '' });
 
   // Publish dialog
   const [publishDialog, setPublishDialog] = useState<{projectId: string;} | null>(null);
@@ -340,13 +342,23 @@ const EmailDraft = () => {
   };
 
   const handleSendTest = () => {
-    if (!testEmail.name.trim() || !testEmail.email.trim() || !testEmail.fromAccountId) {
-      toast({ title: 'Fill all fields', variant: 'destructive' });
+    const hasSeedList = !!testEmail.seedListId;
+    const hasManual = testEmail.email.trim();
+    if (!testEmail.fromAccountId) {
+      toast({ title: 'Select a send-from account', variant: 'destructive' });
       return;
     }
-    toast({ title: `Test email sent to ${testEmail.email}` });
+    if (!hasSeedList && !hasManual) {
+      toast({ title: 'Enter at least one recipient email or select a seed list', variant: 'destructive' });
+      return;
+    }
+    const seedList = seedLists.find((l) => l.id === testEmail.seedListId);
+    const recipients = seedList
+      ? seedList.contacts.map((c) => c.email).join(', ')
+      : testEmail.email;
+    toast({ title: `Test email sent to ${recipients}` });
     setSendTestDialog(null);
-    setTestEmail({ name: '', email: '', fromAccountId: '' });
+    setTestEmail({ name: '', email: '', fromAccountId: '', seedListId: '' });
   };
 
   const handlePublish = (projectId: string) => {
@@ -362,9 +374,14 @@ const EmailDraft = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm font-light text-muted-foreground">Email Draft</p>
-        <h1 className="text-2xl font-semibold text-foreground">All Content</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-light text-muted-foreground">Email Draft</p>
+          <h1 className="text-2xl font-semibold text-foreground">All Content</h1>
+        </div>
+          <Button variant="outline" onClick={() => window.open('/merge-tags', '_blank')}>
+            <Tags className="h-4 w-4 mr-2" /> Merge Tags
+          </Button>
       </div>
 
       <HolidayBanner />
@@ -770,9 +787,46 @@ const EmailDraft = () => {
             </div>
             <div className="space-y-2">
               <Label>Recipient Email(s)</Label>
-              <Input value={testEmail.email} onChange={(e) => setTestEmail({ ...testEmail, email: e.target.value })} placeholder="test@example.com, another@example.com" />
+              <Input
+                value={testEmail.email}
+                onChange={(e) => setTestEmail({ ...testEmail, email: e.target.value, seedListId: '' })}
+                placeholder="test@example.com, another@example.com"
+                disabled={!!testEmail.seedListId}
+              />
               <p className="text-[11px] text-muted-foreground">Comma-separated for multiple recipients</p>
             </div>
+
+            {seedLists.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 border-t border-border" />
+                  <span className="text-xs text-muted-foreground px-2">or use a seed list</span>
+                  <div className="flex-1 border-t border-border" />
+                </div>
+                <Label>Select Seed List</Label>
+                <Select
+                  value={testEmail.seedListId}
+                  onValueChange={(v) => setTestEmail({ ...testEmail, seedListId: v, email: v ? '' : testEmail.email })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Choose a seed list..." /></SelectTrigger>
+                  <SelectContent>
+                    {seedLists.map((list) => (
+                      <SelectItem key={list.id} value={list.id}>
+                        {list.name} ({list.contacts.length} contact{list.contacts.length !== 1 ? 's' : ''})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {testEmail.seedListId && (
+                  <div className="rounded-md bg-muted/50 border border-border p-2 text-xs space-y-1">
+                    {seedLists.find((l) => l.id === testEmail.seedListId)?.contacts.map((c) => (
+                      <div key={c.id} className="font-mono text-muted-foreground">{c.email}{c.firstName ? ` — ${c.firstName} ${c.lastName}`.trim() : ''}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Send From</Label>
               <Select value={testEmail.fromAccountId} onValueChange={(v) => setTestEmail({ ...testEmail, fromAccountId: v })}>

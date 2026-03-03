@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import StatsCard from '@/components/dashboard/StatsCard';
 import WelcomeBanner from '@/components/dashboard/WelcomeBanner';
 import HolidayBanner from '@/components/HolidayBanner';
-import { Link } from 'react-router-dom';
+
 
 const Dashboard = () => {
   return (
@@ -26,11 +26,9 @@ const Dashboard = () => {
             Overview of your campaign performance
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link to="/merge-tags">
+          <Button variant="outline" onClick={() => window.open('/merge-tags', '_blank')}>
             <Tags className="h-4 w-4 mr-2" /> Merge Tags
-          </Link>
-        </Button>
+          </Button>
       </div>
 
       <HolidayBanner />

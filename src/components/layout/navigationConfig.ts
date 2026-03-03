@@ -156,6 +156,7 @@ export const adminGroups: NavGroup[] = [
       { title: 'Search Email', href: '/ask-ai/search-email', icon: Search },
       { title: 'Search Assets', href: '/ask-ai/search-assets', icon: Link },
       { title: 'Unsubscribe Lists', href: '/ask-ai/unsubscribe-lists', icon: UserMinus },
+      { title: 'Seed List', href: '/ask-ai/seed-list', icon: Users },
     ],
   },
 ];

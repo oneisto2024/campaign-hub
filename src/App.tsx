@@ -28,7 +28,9 @@ import Unsubscribe from "./pages/Unsubscribe";
 import UnsubscribeAdmin from "./pages/UnsubscribeAdmin";
 import ListManagement from "./pages/ListManagement";
 import MergeTags from "./pages/MergeTags";
+import SeedList from "./pages/SeedList";
 import NotFound from "./pages/NotFound";
+import { SeedListProvider } from "./contexts/SeedListContext";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +38,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <LayoutProvider>
+        <SeedListProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -103,16 +106,18 @@ const App = () => (
               {/* Merge Tags */}
               <Route path="/merge-tags" element={<MergeTags />} />
 
-              {/* Ask AI */}
-              <Route path="/ask-ai/search-email" element={<PlaceholderPage />} />
-              <Route path="/ask-ai/search-assets" element={<PlaceholderPage />} />
-              <Route path="/ask-ai/unsubscribe-lists" element={<PlaceholderPage />} />
+               {/* Ask AI */}
+               <Route path="/ask-ai/search-email" element={<PlaceholderPage />} />
+               <Route path="/ask-ai/search-assets" element={<PlaceholderPage />} />
+               <Route path="/ask-ai/unsubscribe-lists" element={<PlaceholderPage />} />
+               <Route path="/ask-ai/seed-list" element={<SeedList />} />
             </Route>
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </SeedListProvider>
       </LayoutProvider>
     </TooltipProvider>
   </QueryClientProvider>
