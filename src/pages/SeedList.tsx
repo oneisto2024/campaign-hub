@@ -12,7 +12,7 @@ import {
   Plus, Trash2, Upload, Users, Edit2, Save, X, Download, Search, HelpCircle, ChevronRight,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useSeedLists, SeedContact, SeedList } from '@/contexts/SeedListContext';
+import { useSeedLists, SeedContact, SeedList as SeedListType } from '@/contexts/SeedListContext';
 import { format } from 'date-fns';
 
 const COLUMNS = ['Email', 'First Name', 'Last Name', 'Company'];
