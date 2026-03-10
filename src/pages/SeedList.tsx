@@ -356,7 +356,7 @@ const SeedList = () => {
     setDeleteConfirm(null);
   };
 
-  const exportList = (list: SeedList) => {
+  const exportList = (list: SeedListType) => {
     const rows = [
       'Email,First Name,Last Name,Company',
       ...list.contacts.map((c) => `"${c.email}","${c.firstName}","${c.lastName}","${c.company}"`),
