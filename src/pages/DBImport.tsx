@@ -162,6 +162,45 @@ const DBImport = () => {
   // Store full CSV data for column value extraction
   const [csvData, setCsvData] = useState<string[][]>([]);
 
+  // Inline editing state
+  const [editingField, setEditingField] = useState<{ id: string; field: 'projectName' | 'batchName' } | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  const startEditing = (project: ImportProject, field: 'projectName' | 'batchName') => {
+    setEditingField({ id: project.id, field });
+    setEditValue(project[field]);
+  };
+
+  const saveEditing = () => {
+    if (!editingField || !editValue.trim()) return;
+    setProjects(prev => prev.map(p =>
+      p.id === editingField.id ? { ...p, [editingField.field]: editValue.trim() } : p
+    ));
+    toast({ title: `${editingField.field === 'projectName' ? 'Project' : 'Batch'} name updated` });
+    setEditingField(null);
+    setEditValue('');
+  };
+
+  const cancelEditing = () => { setEditingField(null); setEditValue(''); };
+
+  const duplicateProject = (project: ImportProject) => {
+    const batchCount = projects.filter(p => p.projectName === project.projectName).length + 1;
+    const newProject: ImportProject = {
+      ...project,
+      id: Date.now().toString(),
+      batchName: `Batch ${batchCount}`,
+      uniqueId: `PRJ-2026-${String(projects.length + 1).padStart(3, '0')}`,
+      importStatus: 'pending',
+      dataUploaded: false,
+      validationDone: false,
+      suppressionDone: false,
+      validationRunStatus: 'pending',
+      validationStats: undefined,
+    };
+    setProjects(prev => [...prev, newProject]);
+    toast({ title: `Duplicated "${project.projectName}" as "${newProject.batchName}"` });
+  };
+
   const filteredProjects = useMemo(() => {
     if (!searchQuery) return projects;
     const q = searchQuery.toLowerCase();
