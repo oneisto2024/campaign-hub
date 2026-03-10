@@ -338,7 +338,7 @@ const SeedListDialog = ({
 const SeedList = () => {
   const { seedLists, deleteSeedList } = useSeedLists();
   const [createOpen, setCreateOpen] = useState(false);
-  const [editing, setEditing] = useState<SeedList | null>(null);
+  const [editing, setEditing] = useState<SeedListType | null>(null);
   const [search, setSearch] = useState('');
   const [expandedList, setExpandedList] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<SeedList | null>(null);
