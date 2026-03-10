@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Upload, Plus, Check, X, Send, FileUp, ShieldCheck, Filter, Eye, Play, BarChart3, Loader2 } from 'lucide-react';
+import { Search, Upload, Plus, Check, X, Send, FileUp, ShieldCheck, Filter, Eye, Play, BarChart3, Loader2, Copy, Pencil } from 'lucide-react';
 import { ScopeData } from './CreateCampaign';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -36,6 +36,7 @@ const DEFAULT_CONTACT_PROPERTIES = [
 interface ImportProject {
   id: string;
   projectName: string;
+  batchName: string;
   clientId: string;
   uniqueId: string;
   projectSummary: string;
@@ -67,14 +68,14 @@ interface ValidationTerms {
 // Mock data
 const MOCK_IMPORT_PROJECTS: ImportProject[] = [
   {
-    id: '1', projectName: 'Q1 Lead Generation Campaign', clientId: 'ACME001',
+    id: '1', projectName: 'Q1 Lead Generation Campaign', batchName: 'Batch 1', clientId: 'ACME001',
     uniqueId: 'PRJ-2026-001', projectSummary: 'MQL campaign targeting enterprise clients in APAC region',
     hasScopeDocument: true, publishedAt: new Date('2026-01-12'),
     importStatus: 'pending', dataUploaded: false, validationDone: false, suppressionDone: false,
     validationRunStatus: 'pending',
   },
   {
-    id: '3', projectName: 'ABM Campaign - Fortune 500', clientId: 'GLOB003',
+    id: '3', projectName: 'ABM Campaign - Fortune 500', batchName: 'Batch 1', clientId: 'GLOB003',
     uniqueId: 'PRJ-2026-003', projectSummary: 'Account-based marketing for top enterprise accounts',
     hasScopeDocument: false,
     scopeData: {
@@ -98,6 +99,7 @@ const MOCK_IMPORT_PROJECTS: ImportProject[] = [
 const DB_IMPORT_COLUMNS: ColumnDef[] = [
   { key: 'sNo', label: 'S.No', visible: true, minWidth: 50, width: 60 },
   { key: 'projectName', label: 'Project Name', visible: true, minWidth: 100, width: 200 },
+  { key: 'batchName', label: 'Batch Name', visible: true, minWidth: 80, width: 130 },
   { key: 'projectSummary', label: 'Project Summary', visible: true, minWidth: 100, width: 200 },
   { key: 'clientId', label: 'Client ID', visible: true, minWidth: 80, width: 110 },
   { key: 'uniqueId', label: 'Unique ID', visible: true, minWidth: 80, width: 130 },
@@ -106,7 +108,7 @@ const DB_IMPORT_COLUMNS: ColumnDef[] = [
   { key: 'validation', label: 'Validation', visible: true, minWidth: 100, width: 160 },
   { key: 'suppression', label: 'Suppression', visible: true, minWidth: 80, width: 110 },
   { key: 'status', label: 'Status', visible: true, minWidth: 80, width: 120 },
-  { key: 'actions', label: 'Actions', visible: true, minWidth: 80, width: 100 },
+  { key: 'actions', label: 'Actions', visible: true, minWidth: 120, width: 160 },
   { key: 'publish', label: 'Publish', visible: true, minWidth: 70, width: 90 },
 ];
 
@@ -159,6 +161,45 @@ const DBImport = () => {
 
   // Store full CSV data for column value extraction
   const [csvData, setCsvData] = useState<string[][]>([]);
+
+  // Inline editing state
+  const [editingField, setEditingField] = useState<{ id: string; field: 'projectName' | 'batchName' } | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  const startEditing = (project: ImportProject, field: 'projectName' | 'batchName') => {
+    setEditingField({ id: project.id, field });
+    setEditValue(project[field]);
+  };
+
+  const saveEditing = () => {
+    if (!editingField || !editValue.trim()) return;
+    setProjects(prev => prev.map(p =>
+      p.id === editingField.id ? { ...p, [editingField.field]: editValue.trim() } : p
+    ));
+    toast({ title: `${editingField.field === 'projectName' ? 'Project' : 'Batch'} name updated` });
+    setEditingField(null);
+    setEditValue('');
+  };
+
+  const cancelEditing = () => { setEditingField(null); setEditValue(''); };
+
+  const duplicateProject = (project: ImportProject) => {
+    const batchCount = projects.filter(p => p.projectName === project.projectName).length + 1;
+    const newProject: ImportProject = {
+      ...project,
+      id: Date.now().toString(),
+      batchName: `Batch ${batchCount}`,
+      uniqueId: `PRJ-2026-${String(projects.length + 1).padStart(3, '0')}`,
+      importStatus: 'pending',
+      dataUploaded: false,
+      validationDone: false,
+      suppressionDone: false,
+      validationRunStatus: 'pending',
+      validationStats: undefined,
+    };
+    setProjects(prev => [...prev, newProject]);
+    toast({ title: `Duplicated "${project.projectName}" as "${newProject.batchName}"` });
+  };
 
   const filteredProjects = useMemo(() => {
     if (!searchQuery) return projects;
@@ -452,7 +493,36 @@ const DBImport = () => {
             renderCell={(project: ImportProject & { _sNo: number }, key: string) => {
               switch (key) {
                 case 'sNo': return project._sNo;
-                case 'projectName': return <span className="font-medium">{project.projectName}</span>;
+                case 'projectName': return editingField?.id === project.id && editingField.field === 'projectName' ? (
+                  <div className="flex items-center gap-1">
+                    <Input value={editValue} onChange={e => setEditValue(e.target.value)} className="h-7 text-sm" autoFocus
+                      onKeyDown={e => { if (e.key === 'Enter') saveEditing(); if (e.key === 'Escape') cancelEditing(); }} />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveEditing}><Check className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditing}><X className="h-3 w-3" /></Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 group">
+                    <span className="font-medium">{project.projectName}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => startEditing(project, 'projectName')}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </div>
+                );
+                case 'batchName': return editingField?.id === project.id && editingField.field === 'batchName' ? (
+                  <div className="flex items-center gap-1">
+                    <Input value={editValue} onChange={e => setEditValue(e.target.value)} className="h-7 text-sm" autoFocus
+                      onKeyDown={e => { if (e.key === 'Enter') saveEditing(); if (e.key === 'Escape') cancelEditing(); }} />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveEditing}><Check className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditing}><X className="h-3 w-3" /></Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 group">
+                    <span className="text-sm">{project.batchName}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => startEditing(project, 'batchName')}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </div>
+                );
                 case 'projectSummary': return (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground line-clamp-2">
@@ -494,9 +564,14 @@ const DBImport = () => {
                   : <Badge variant="outline">Pending</Badge>;
                 case 'status': return getStatusBadge(project);
                 case 'actions': return (
-                  <Button variant="outline" size="sm" onClick={() => openImportDialog(project)} disabled={project.importStatus === 'ready'}>
-                    <FileUp className="h-4 w-4 mr-1" /> Import
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" onClick={() => openImportDialog(project)} disabled={project.importStatus === 'ready'}>
+                      <FileUp className="h-4 w-4 mr-1" /> Import
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateProject(project)} title="Duplicate project">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 );
                 case 'publish': return (
                   <div className="flex flex-col items-center gap-1">

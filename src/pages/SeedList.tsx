@@ -12,7 +12,7 @@ import {
   Plus, Trash2, Upload, Users, Edit2, Save, X, Download, Search, HelpCircle, ChevronRight,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useSeedLists, SeedContact, SeedList } from '@/contexts/SeedListContext';
+import { useSeedLists, SeedContact, SeedList as SeedListType } from '@/contexts/SeedListContext';
 import { format } from 'date-fns';
 
 const COLUMNS = ['Email', 'First Name', 'Last Name', 'Company'];
@@ -148,7 +148,7 @@ const SeedListDialog = ({
 }: {
   open: boolean;
   onClose: () => void;
-  editing: SeedList | null;
+  editing: SeedListType | null;
 }) => {
   const { addSeedList, updateSeedList } = useSeedLists();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -338,10 +338,10 @@ const SeedListDialog = ({
 const SeedList = () => {
   const { seedLists, deleteSeedList } = useSeedLists();
   const [createOpen, setCreateOpen] = useState(false);
-  const [editing, setEditing] = useState<SeedList | null>(null);
+  const [editing, setEditing] = useState<SeedListType | null>(null);
   const [search, setSearch] = useState('');
   const [expandedList, setExpandedList] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<SeedList | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<SeedListType | null>(null);
 
   const filtered = seedLists.filter(
     (l) =>
@@ -356,7 +356,7 @@ const SeedList = () => {
     setDeleteConfirm(null);
   };
 
-  const exportList = (list: SeedList) => {
+  const exportList = (list: SeedListType) => {
     const rows = [
       'Email,First Name,Last Name,Company',
       ...list.contacts.map((c) => `"${c.email}","${c.firstName}","${c.lastName}","${c.company}"`),

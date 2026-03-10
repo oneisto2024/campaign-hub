@@ -91,6 +91,9 @@ const NavGroupItem = ({ group, collapsed }: { group: NavGroup; collapsed: boolea
 
 const VerticalSidebar = () => {
   const { sidebarOpen, setSidebarOpen } = useLayout();
+  const [modulesOpen, setModulesOpen] = useState(true);
+  const [adminOpen, setAdminOpen] = useState(true);
+  const [mainOpen, setMainOpen] = useState(true);
 
   return (
     <aside
@@ -110,48 +113,74 @@ const VerticalSidebar = () => {
       </div>
 
       <ScrollArea className="flex-1 px-3 py-4">
-        <div className="space-y-1">
-          {mainNavItems.map((item) => (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-light transition-colors',
-                  isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-foreground/70 hover:bg-accent hover:text-foreground',
-                  !sidebarOpen && 'justify-center px-2'
-                )
-              }
-            >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span>{item.title}</span>}
-            </NavLink>
-          ))}
-        </div>
-
+        {/* Dashboard section - collapsible */}
         {sidebarOpen && (
-          <p className="mb-2 mt-6 px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Modules
-          </p>
+          <button
+            onClick={() => setMainOpen(!mainOpen)}
+            className="mb-2 flex w-full items-center justify-between px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            <span>Dashboard</span>
+            <ChevronDown className={cn('h-3 w-3 transition-transform', !mainOpen && '-rotate-90')} />
+          </button>
         )}
-        <div className="space-y-1">
-          {moduleGroups.map((group) => (
-            <NavGroupItem key={group.title} group={group} collapsed={!sidebarOpen} />
-          ))}
-        </div>
+        {(mainOpen || !sidebarOpen) && (
+          <div className="space-y-1">
+            {mainNavItems.map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-light transition-colors',
+                    isActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-foreground/70 hover:bg-accent hover:text-foreground',
+                    !sidebarOpen && 'justify-center px-2'
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4 flex-shrink-0" />
+                {sidebarOpen && <span>{item.title}</span>}
+              </NavLink>
+            ))}
+          </div>
+        )}
 
+        {/* Modules section - collapsible */}
         {sidebarOpen && (
-          <p className="mb-2 mt-6 px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Admin
-          </p>
+          <button
+            onClick={() => setModulesOpen(!modulesOpen)}
+            className="mb-2 mt-6 flex w-full items-center justify-between px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            <span>Modules</span>
+            <ChevronDown className={cn('h-3 w-3 transition-transform', !modulesOpen && '-rotate-90')} />
+          </button>
         )}
-        <div className="space-y-1">
-          {adminGroups.map((group) => (
-            <NavGroupItem key={group.title} group={group} collapsed={!sidebarOpen} />
-          ))}
-        </div>
+        {(modulesOpen || !sidebarOpen) && (
+          <div className="space-y-1">
+            {moduleGroups.map((group) => (
+              <NavGroupItem key={group.title} group={group} collapsed={!sidebarOpen} />
+            ))}
+          </div>
+        )}
+
+        {/* Admin section - collapsible */}
+        {sidebarOpen && (
+          <button
+            onClick={() => setAdminOpen(!adminOpen)}
+            className="mb-2 mt-6 flex w-full items-center justify-between px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            <span>Admin</span>
+            <ChevronDown className={cn('h-3 w-3 transition-transform', !adminOpen && '-rotate-90')} />
+          </button>
+        )}
+        {(adminOpen || !sidebarOpen) && (
+          <div className="space-y-1">
+            {adminGroups.map((group) => (
+              <NavGroupItem key={group.title} group={group} collapsed={!sidebarOpen} />
+            ))}
+          </div>
+        )}
       </ScrollArea>
     </aside>
   );
