@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Upload, Plus, Check, X, Send, FileUp, ShieldCheck, Filter, Eye, Play, BarChart3, Loader2 } from 'lucide-react';
+import { Search, Upload, Plus, Check, X, Send, FileUp, ShieldCheck, Filter, Eye, Play, BarChart3, Loader2, Copy, Pencil } from 'lucide-react';
 import { ScopeData } from './CreateCampaign';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
