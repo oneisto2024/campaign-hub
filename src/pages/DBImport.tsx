@@ -68,14 +68,14 @@ interface ValidationTerms {
 // Mock data
 const MOCK_IMPORT_PROJECTS: ImportProject[] = [
   {
-    id: '1', projectName: 'Q1 Lead Generation Campaign', clientId: 'ACME001',
+    id: '1', projectName: 'Q1 Lead Generation Campaign', batchName: 'Batch 1', clientId: 'ACME001',
     uniqueId: 'PRJ-2026-001', projectSummary: 'MQL campaign targeting enterprise clients in APAC region',
     hasScopeDocument: true, publishedAt: new Date('2026-01-12'),
     importStatus: 'pending', dataUploaded: false, validationDone: false, suppressionDone: false,
     validationRunStatus: 'pending',
   },
   {
-    id: '3', projectName: 'ABM Campaign - Fortune 500', clientId: 'GLOB003',
+    id: '3', projectName: 'ABM Campaign - Fortune 500', batchName: 'Batch 1', clientId: 'GLOB003',
     uniqueId: 'PRJ-2026-003', projectSummary: 'Account-based marketing for top enterprise accounts',
     hasScopeDocument: false,
     scopeData: {
