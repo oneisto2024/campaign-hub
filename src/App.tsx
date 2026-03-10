@@ -29,6 +29,7 @@ import UnsubscribeAdmin from "./pages/UnsubscribeAdmin";
 import ListManagement from "./pages/ListManagement";
 import MergeTags from "./pages/MergeTags";
 import SeedList from "./pages/SeedList";
+import EmailSearch from "./pages/EmailSearch";
 import NotFound from "./pages/NotFound";
 import { SeedListProvider } from "./contexts/SeedListContext";
 
@@ -106,11 +107,11 @@ const App = () => (
               {/* Merge Tags */}
               <Route path="/merge-tags" element={<MergeTags />} />
 
-               {/* Ask AI */}
-               <Route path="/ask-ai/search-email" element={<PlaceholderPage />} />
-               <Route path="/ask-ai/search-assets" element={<PlaceholderPage />} />
-               <Route path="/ask-ai/unsubscribe-lists" element={<PlaceholderPage />} />
-               <Route path="/ask-ai/seed-list" element={<SeedList />} />
+               {/* Ops Management */}
+               <Route path="/ops/search-email" element={<EmailSearch />} />
+               <Route path="/ops/search-assets" element={<PlaceholderPage />} />
+               <Route path="/ops/unsubscribe-lists" element={<PlaceholderPage />} />
+               <Route path="/ops/seed-list" element={<SeedList />} />
             </Route>
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
