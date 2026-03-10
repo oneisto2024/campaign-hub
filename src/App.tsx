@@ -29,6 +29,7 @@ import UnsubscribeAdmin from "./pages/UnsubscribeAdmin";
 import ListManagement from "./pages/ListManagement";
 import MergeTags from "./pages/MergeTags";
 import SeedList from "./pages/SeedList";
+import EmailSearch from "./pages/EmailSearch";
 import NotFound from "./pages/NotFound";
 import { SeedListProvider } from "./contexts/SeedListContext";
 
