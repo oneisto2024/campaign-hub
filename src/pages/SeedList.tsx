@@ -148,7 +148,7 @@ const SeedListDialog = ({
 }: {
   open: boolean;
   onClose: () => void;
-  editing: SeedList | null;
+  editing: SeedListType | null;
 }) => {
   const { addSeedList, updateSeedList } = useSeedLists();
   const fileRef = useRef<HTMLInputElement>(null);
