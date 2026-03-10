@@ -150,13 +150,13 @@ export const adminGroups: NavGroup[] = [
     ],
   },
   {
-    title: 'Ask AI',
+    title: 'Ops Management',
     icon: Bot,
     items: [
-      { title: 'Search Email', href: '/ask-ai/search-email', icon: Search },
-      { title: 'Search Assets', href: '/ask-ai/search-assets', icon: Link },
-      { title: 'Unsubscribe Lists', href: '/ask-ai/unsubscribe-lists', icon: UserMinus },
-      { title: 'Seed List', href: '/ask-ai/seed-list', icon: Users },
+      { title: 'Search Email', href: '/ops/search-email', icon: Search },
+      { title: 'Search Assets', href: '/ops/search-assets', icon: Link },
+      { title: 'Unsubscribe Lists', href: '/ops/unsubscribe-lists', icon: UserMinus },
+      { title: 'Seed List', href: '/ops/seed-list', icon: Users },
     ],
   },
 ];
