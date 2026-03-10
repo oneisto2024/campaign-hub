@@ -493,7 +493,36 @@ const DBImport = () => {
             renderCell={(project: ImportProject & { _sNo: number }, key: string) => {
               switch (key) {
                 case 'sNo': return project._sNo;
-                case 'projectName': return <span className="font-medium">{project.projectName}</span>;
+                case 'projectName': return editingField?.id === project.id && editingField.field === 'projectName' ? (
+                  <div className="flex items-center gap-1">
+                    <Input value={editValue} onChange={e => setEditValue(e.target.value)} className="h-7 text-sm" autoFocus
+                      onKeyDown={e => { if (e.key === 'Enter') saveEditing(); if (e.key === 'Escape') cancelEditing(); }} />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveEditing}><Check className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditing}><X className="h-3 w-3" /></Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 group">
+                    <span className="font-medium">{project.projectName}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => startEditing(project, 'projectName')}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </div>
+                );
+                case 'batchName': return editingField?.id === project.id && editingField.field === 'batchName' ? (
+                  <div className="flex items-center gap-1">
+                    <Input value={editValue} onChange={e => setEditValue(e.target.value)} className="h-7 text-sm" autoFocus
+                      onKeyDown={e => { if (e.key === 'Enter') saveEditing(); if (e.key === 'Escape') cancelEditing(); }} />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveEditing}><Check className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditing}><X className="h-3 w-3" /></Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 group">
+                    <span className="text-sm">{project.batchName}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => startEditing(project, 'batchName')}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </div>
+                );
                 case 'projectSummary': return (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground line-clamp-2">
@@ -535,9 +564,14 @@ const DBImport = () => {
                   : <Badge variant="outline">Pending</Badge>;
                 case 'status': return getStatusBadge(project);
                 case 'actions': return (
-                  <Button variant="outline" size="sm" onClick={() => openImportDialog(project)} disabled={project.importStatus === 'ready'}>
-                    <FileUp className="h-4 w-4 mr-1" /> Import
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" onClick={() => openImportDialog(project)} disabled={project.importStatus === 'ready'}>
+                      <FileUp className="h-4 w-4 mr-1" /> Import
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateProject(project)} title="Duplicate project">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 );
                 case 'publish': return (
                   <div className="flex flex-col items-center gap-1">
