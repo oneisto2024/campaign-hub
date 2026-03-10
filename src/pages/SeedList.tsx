@@ -341,7 +341,7 @@ const SeedList = () => {
   const [editing, setEditing] = useState<SeedListType | null>(null);
   const [search, setSearch] = useState('');
   const [expandedList, setExpandedList] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<SeedList | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<SeedListType | null>(null);
 
   const filtered = seedLists.filter(
     (l) =>
