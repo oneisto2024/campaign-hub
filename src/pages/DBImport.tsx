@@ -36,6 +36,7 @@ const DEFAULT_CONTACT_PROPERTIES = [
 interface ImportProject {
   id: string;
   projectName: string;
+  batchName: string;
   clientId: string;
   uniqueId: string;
   projectSummary: string;
