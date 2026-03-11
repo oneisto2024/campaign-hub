@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLayout } from '@/contexts/LayoutContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import Logo from './Logo';
 import { mainNavItems, moduleGroups, adminGroups, type NavGroup } from './navigationConfig';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -91,10 +92,56 @@ const NavGroupItem = ({ group, collapsed }: { group: NavGroup; collapsed: boolea
 
 const VerticalSidebar = () => {
   const { sidebarOpen, setSidebarOpen } = useLayout();
+  const isMobile = useIsMobile();
   const [modulesOpen, setModulesOpen] = useState(true);
   const [adminOpen, setAdminOpen] = useState(true);
   const [mainOpen, setMainOpen] = useState(true);
 
+  // Mobile: overlay sidebar
+  if (isMobile) {
+    return (
+      <>
+        {/* Backdrop */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        {/* Drawer */}
+        <aside
+          className={cn(
+            'fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-border bg-card transition-transform duration-300',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+          <div className="flex h-14 items-center justify-between border-b border-border px-4">
+            <Logo collapsed={false} />
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <ScrollArea className="flex-1 px-3 py-4">
+            <SidebarContent
+              sidebarOpen={true}
+              mainOpen={mainOpen}
+              setMainOpen={setMainOpen}
+              modulesOpen={modulesOpen}
+              setModulesOpen={setModulesOpen}
+              adminOpen={adminOpen}
+              setAdminOpen={setAdminOpen}
+              onNavigate={() => setSidebarOpen(false)}
+            />
+          </ScrollArea>
+        </aside>
+      </>
+    );
+  }
+
+  // Desktop: fixed sidebar
   return (
     <aside
       className={cn(
@@ -113,77 +160,111 @@ const VerticalSidebar = () => {
       </div>
 
       <ScrollArea className="flex-1 px-3 py-4">
-        {/* Dashboard section - collapsible */}
-        {sidebarOpen && (
-          <button
-            onClick={() => setMainOpen(!mainOpen)}
-            className="mb-2 flex w-full items-center justify-between px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
-          >
-            <span>Dashboard</span>
-            <ChevronDown className={cn('h-3 w-3 transition-transform', !mainOpen && '-rotate-90')} />
-          </button>
-        )}
-        {(mainOpen || !sidebarOpen) && (
-          <div className="space-y-1">
-            {mainNavItems.map((item) => (
-              <NavLink
-                key={item.href}
-                to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-light transition-colors',
-                    isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-foreground/70 hover:bg-accent hover:text-foreground',
-                    !sidebarOpen && 'justify-center px-2'
-                  )
-                }
-              >
-                <item.icon className="h-4 w-4 flex-shrink-0" />
-                {sidebarOpen && <span>{item.title}</span>}
-              </NavLink>
-            ))}
-          </div>
-        )}
-
-        {/* Modules section - collapsible */}
-        {sidebarOpen && (
-          <button
-            onClick={() => setModulesOpen(!modulesOpen)}
-            className="mb-2 mt-6 flex w-full items-center justify-between px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
-          >
-            <span>Modules</span>
-            <ChevronDown className={cn('h-3 w-3 transition-transform', !modulesOpen && '-rotate-90')} />
-          </button>
-        )}
-        {(modulesOpen || !sidebarOpen) && (
-          <div className="space-y-1">
-            {moduleGroups.map((group) => (
-              <NavGroupItem key={group.title} group={group} collapsed={!sidebarOpen} />
-            ))}
-          </div>
-        )}
-
-        {/* Admin section - collapsible */}
-        {sidebarOpen && (
-          <button
-            onClick={() => setAdminOpen(!adminOpen)}
-            className="mb-2 mt-6 flex w-full items-center justify-between px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
-          >
-            <span>Admin</span>
-            <ChevronDown className={cn('h-3 w-3 transition-transform', !adminOpen && '-rotate-90')} />
-          </button>
-        )}
-        {(adminOpen || !sidebarOpen) && (
-          <div className="space-y-1">
-            {adminGroups.map((group) => (
-              <NavGroupItem key={group.title} group={group} collapsed={!sidebarOpen} />
-            ))}
-          </div>
-        )}
+        <SidebarContent
+          sidebarOpen={sidebarOpen}
+          mainOpen={mainOpen}
+          setMainOpen={setMainOpen}
+          modulesOpen={modulesOpen}
+          setModulesOpen={setModulesOpen}
+          adminOpen={adminOpen}
+          setAdminOpen={setAdminOpen}
+        />
       </ScrollArea>
     </aside>
   );
 };
+
+// Extracted sidebar content to avoid duplication
+const SidebarContent = ({
+  sidebarOpen,
+  mainOpen,
+  setMainOpen,
+  modulesOpen,
+  setModulesOpen,
+  adminOpen,
+  setAdminOpen,
+  onNavigate,
+}: {
+  sidebarOpen: boolean;
+  mainOpen: boolean;
+  setMainOpen: (v: boolean) => void;
+  modulesOpen: boolean;
+  setModulesOpen: (v: boolean) => void;
+  adminOpen: boolean;
+  setAdminOpen: (v: boolean) => void;
+  onNavigate?: () => void;
+}) => (
+  <>
+    {/* Dashboard section */}
+    {sidebarOpen && (
+      <button
+        onClick={() => setMainOpen(!mainOpen)}
+        className="mb-2 flex w-full items-center justify-between px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+      >
+        <span>Dashboard</span>
+        <ChevronDown className={cn('h-3 w-3 transition-transform', !mainOpen && '-rotate-90')} />
+      </button>
+    )}
+    {(mainOpen || !sidebarOpen) && (
+      <div className="space-y-1">
+        {mainNavItems.map((item) => (
+          <NavLink
+            key={item.href}
+            to={item.href}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-light transition-colors',
+                isActive
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-foreground/70 hover:bg-accent hover:text-foreground',
+                !sidebarOpen && 'justify-center px-2'
+              )
+            }
+          >
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            {sidebarOpen && <span>{item.title}</span>}
+          </NavLink>
+        ))}
+      </div>
+    )}
+
+    {/* Modules section */}
+    {sidebarOpen && (
+      <button
+        onClick={() => setModulesOpen(!modulesOpen)}
+        className="mb-2 mt-6 flex w-full items-center justify-between px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+      >
+        <span>Modules</span>
+        <ChevronDown className={cn('h-3 w-3 transition-transform', !modulesOpen && '-rotate-90')} />
+      </button>
+    )}
+    {(modulesOpen || !sidebarOpen) && (
+      <div className="space-y-1">
+        {moduleGroups.map((group) => (
+          <NavGroupItem key={group.title} group={group} collapsed={!sidebarOpen} />
+        ))}
+      </div>
+    )}
+
+    {/* Admin section */}
+    {sidebarOpen && (
+      <button
+        onClick={() => setAdminOpen(!adminOpen)}
+        className="mb-2 mt-6 flex w-full items-center justify-between px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+      >
+        <span>Admin</span>
+        <ChevronDown className={cn('h-3 w-3 transition-transform', !adminOpen && '-rotate-90')} />
+      </button>
+    )}
+    {(adminOpen || !sidebarOpen) && (
+      <div className="space-y-1">
+        {adminGroups.map((group) => (
+          <NavGroupItem key={group.title} group={group} collapsed={!sidebarOpen} />
+        ))}
+      </div>
+    )}
+  </>
+);
 
 export default VerticalSidebar;

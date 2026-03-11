@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Bell, Settings } from 'lucide-react';
+import { Bell, Settings, Menu } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { mainNavItems, moduleGroups, adminGroups } from './navigationConfig';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useLayout } from '@/contexts/LayoutContext';
 
 // Build a flat searchable index from navigation config
 interface SearchItem {
@@ -37,7 +39,6 @@ const buildSearchIndex = (): SearchItem[] => {
       });
     });
   });
-  // Add some stat/metric aliases
   items.push({ title: 'Analytics & Metrics', href: '/metrics/analytics', category: 'Metrics', keywords: ['stats', 'statistics', 'metrics', 'analytics', 'reports'] });
   return items;
 };
@@ -46,6 +47,8 @@ const SEARCH_INDEX = buildSearchIndex();
 
 const TopBar = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const { setSidebarOpen } = useLayout();
   const [query, setQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -87,12 +90,22 @@ const TopBar = () => {
   };
 
   return (
-    <div className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
-      <div className="relative w-full max-w-md" ref={wrapperRef}>
+    <div className="flex h-14 md:h-16 items-center justify-between border-b border-border bg-card px-3 md:px-6 gap-2">
+      {/* Hamburger for mobile */}
+      {isMobile && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="rounded-md p-2 text-foreground/70 hover:bg-accent hover:text-foreground flex-shrink-0"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
+
+      <div className="relative flex-1 max-w-md" ref={wrapperRef}>
         <Input
           type="search"
-          placeholder="Search modules, projects, stats..."
-          className="w-full bg-background pl-4 font-light"
+          placeholder={isMobile ? "Search..." : "Search modules, projects, stats..."}
+          className="w-full bg-background pl-4 font-light h-9 md:h-10 text-sm"
           value={query}
           onChange={e => { setQuery(e.target.value); setShowResults(true); }}
           onFocus={() => query && setShowResults(true)}
@@ -122,7 +135,7 @@ const TopBar = () => {
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1 md:gap-4 flex-shrink-0">
         <button className="relative rounded-md p-2 text-foreground/70 hover:bg-accent hover:text-foreground">
           <Bell className="h-5 w-5" />
           <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
@@ -130,21 +143,21 @@ const TopBar = () => {
 
         <NavLink
           to="/settings"
-          className="rounded-md p-2 text-foreground/70 hover:bg-accent hover:text-foreground"
+          className="rounded-md p-2 text-foreground/70 hover:bg-accent hover:text-foreground hidden md:block"
         >
           <Settings className="h-5 w-5" />
         </NavLink>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3">
-              <Avatar className="h-9 w-9">
+            <button className="flex items-center gap-2 md:gap-3">
+              <Avatar className="h-8 w-8 md:h-9 md:w-9">
                 <AvatarImage src="" />
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs md:text-sm">
                   SA
                 </AvatarFallback>
               </Avatar>
-              <div className="hidden text-left md:block">
+              <div className="hidden lg:block text-left">
                 <p className="text-sm font-medium text-foreground">Super Admin</p>
                 <p className="text-xs font-light text-muted-foreground">admin@company.com</p>
               </div>
