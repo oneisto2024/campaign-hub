@@ -128,7 +128,7 @@ const AllClients = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
           <p className="text-sm font-light text-muted-foreground">Client Management</p>
           <h1 className="text-2xl font-semibold text-foreground">All Clients</h1>

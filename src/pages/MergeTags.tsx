@@ -93,14 +93,14 @@ const MergeTags = () => {
 
       <Card>
         <CardHeader className="border-b">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <CardTitle className="text-lg font-medium flex items-center gap-2">
               <Tags className="h-5 w-5" /> Available Merge Tags
             </CardTitle>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search tags..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 w-48" />
+                <Input placeholder="Search tags..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 w-full sm:w-48" />
               </div>
               <Select value={filterCategory} onValueChange={setFilterCategory}>
                 <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
@@ -116,7 +116,8 @@ const MergeTags = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="border-b">
                 <th className="text-left p-3 font-medium text-muted-foreground w-8">#</th>
@@ -160,6 +161,7 @@ const MergeTags = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
 

@@ -464,13 +464,13 @@ const EmailSending = () => {
                 return (
                   <Collapsible key={cid} open={isExpanded} onOpenChange={() => toggleClient(cid)}>
                     <CollapsibleTrigger asChild>
-                      <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
-                        <div className="flex items-center gap-3">
-                          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      <div className="flex flex-wrap items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          {isExpanded ? <ChevronDown className="h-4 w-4 flex-shrink-0" /> : <ChevronRight className="h-4 w-4 flex-shrink-0" />}
                           <span className="font-mono font-semibold text-sm">{cid}</span>
                           <Badge variant="secondary">{projs.length} project{projs.length > 1 ? 's' : ''}</Badge>
                         </div>
-                        <div className="flex items-center gap-3 text-xs">
+                        <div className="flex items-center gap-2 sm:gap-3 text-xs flex-wrap">
                           <span className="text-muted-foreground">Sent: <strong>{totals.sent.toLocaleString()}</strong></span>
                           <span className="text-muted-foreground">Opens: <strong>{totals.opens.toLocaleString()}</strong></span>
                           <span className="text-muted-foreground">Clicks: <strong>{totals.clicks.toLocaleString()}</strong></span>
@@ -483,9 +483,9 @@ const EmailSending = () => {
                         {projs.map((project) => {
                           globalSno++;
                           return (
-                          <div key={project.id} className="border-t border-border/50 px-6 py-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-3">
+                          <div key={project.id} className="border-t border-border/50 px-3 sm:px-6 py-4">
+                            <div className="flex flex-wrap items-start sm:items-center justify-between mb-3 gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xs font-mono text-muted-foreground w-6">{globalSno}.</span>
                                 <span className="font-medium text-sm">{project.projectName}</span>
                                 <span className="font-mono text-xs text-muted-foreground">{project.uniqueId}</span>
