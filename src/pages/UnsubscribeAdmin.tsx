@@ -66,7 +66,8 @@ const UnsubscribeAdmin = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="border-b">
                 <th className="text-left p-3 font-medium text-muted-foreground w-8">#</th>
