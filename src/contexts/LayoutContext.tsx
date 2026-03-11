@@ -16,7 +16,10 @@ export const LayoutProvider = ({ children }: { children: React.ReactNode }) => {
     const saved = localStorage.getItem('crm-layout');
     return (saved as LayoutType) || 'vertical';
   });
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    // Default closed on mobile/tablet
+    return window.innerWidth >= 768;
+  });
 
   const setLayout = (newLayout: LayoutType) => {
     setLayoutState(newLayout);
