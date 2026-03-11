@@ -161,6 +161,7 @@ const MergeTags = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
 

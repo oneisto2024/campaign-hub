@@ -100,6 +100,7 @@ const UnsubscribeAdmin = () => {
               )}
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
     </div>
