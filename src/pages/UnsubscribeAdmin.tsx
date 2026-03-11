@@ -50,14 +50,14 @@ const UnsubscribeAdmin = () => {
       <HolidayBanner />
       <Card>
         <CardHeader className="border-b">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <CardTitle className="text-lg font-medium flex items-center gap-2">
               <UserMinus className="h-5 w-5" /> Unsubscribe Log
             </CardTitle>
-            <div className="flex items-center gap-3">
-              <div className="relative">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative flex-1 min-w-[150px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 w-64" />
+                <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 w-full sm:w-64" />
               </div>
               <Button variant="outline" size="sm" onClick={exportCsv}>
                 <Download className="h-3 w-3 mr-1" /> Export CSV
