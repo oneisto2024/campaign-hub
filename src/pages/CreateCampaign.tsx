@@ -278,38 +278,52 @@ const CreateCampaign = () => {
     }
   };
 
-  const validateStep = (step: number): boolean => {
+  const getValidationErrors = (step: number): string[] => {
+    const errors: string[] = [];
     switch (step) {
       case 1:
-        return !!(campaignName && clientId && projectManager && projectClientEmail);
+        if (!campaignName) errors.push('Campaign Name');
+        if (!clientId) errors.push('Client ID');
+        if (!projectManager) errors.push('Project Manager');
+        if (!projectClientEmail) errors.push('Project Client Email');
+        break;
       case 2:
-        return !!campaignType;
+        if (!campaignType) errors.push('Campaign Type');
+        break;
       case 3:
-        if (hasScopeDocument === 'yes') {
-          return scopeFiles.length > 0;
-        } else if (hasScopeDocument === 'no') {
-          return selectedCountries.length > 0 && targetAudience.length > 0;
+        if (!hasScopeDocument) { errors.push('Scope Document selection'); break; }
+        if (hasScopeDocument === 'yes' && scopeFiles.length === 0) errors.push('Scope Document file upload');
+        if (hasScopeDocument === 'no') {
+          if (selectedCountries.length === 0) errors.push('Countries');
+          if (!targetAudience) errors.push('Target Audience');
         }
-        return !!hasScopeDocument;
+        break;
       case 4:
-        if (assetType === 'file') {
-          return assetFiles.length > 0;
-        } else if (assetType === 'link') {
-          return assetLinks.some(link => validateUrl(link));
-        }
-        return true;
+        if (assetType === 'file' && assetFiles.length === 0) errors.push('Asset file upload');
+        if (assetType === 'link' && !assetLinks.some(link => validateUrl(link))) errors.push('At least one valid Asset URL');
+        break;
       case 5:
-        return !!(leadsRequired && campaignStartDate && campaignEndDate && milestonesCount && parseInt(milestonesCount) > 0);
-      default:
-        return true;
+        if (!leadsRequired) errors.push('No. of Leads Required');
+        if (!campaignStartDate) errors.push('Start Date');
+        if (!campaignEndDate) errors.push('End Date');
+        if (!milestonesCount || parseInt(milestonesCount) <= 0) errors.push('Milestones count');
+        break;
     }
+    return errors;
   };
+
+  const validateStep = (step: number): boolean => getValidationErrors(step).length === 0;
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
     } else {
-      toast({ title: 'Please fill all required fields', variant: 'destructive' });
+      const errors = getValidationErrors(currentStep);
+      toast({ 
+        title: 'Missing required fields', 
+        description: `Please fill: ${errors.join(', ')}`,
+        variant: 'destructive' 
+      });
     }
   };
 
