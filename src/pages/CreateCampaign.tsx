@@ -128,7 +128,10 @@ const CreateCampaign = () => {
   const [revenue, setRevenue] = useState('');
   const [installedTechBase, setInstalledTechBase] = useState('');
   const [contactPerCompany, setContactPerCompany] = useState('');
-  const [suppressionList, setSuppressionList] = useState('');
+  const [hasSuppressionList, setHasSuppressionList] = useState<'yes' | 'no'>('no');
+  const [suppressionEmails, setSuppressionEmails] = useState('');
+  const [suppressionDomains, setSuppressionDomains] = useState('');
+  const [suppressionCompanies, setSuppressionCompanies] = useState('');
   const [hasAcceptedCompanyList, setHasAcceptedCompanyList] = useState<'yes' | 'no' | 'none'>('none');
   const [acceptedCompanyFile, setAcceptedCompanyFile] = useState<File | null>(null);
   const [isTelemarketing, setIsTelemarketing] = useState<'yes' | 'no'>('no');
