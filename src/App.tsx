@@ -114,6 +114,9 @@ const App = () => (
                <Route path="/ops/seed-list" element={<SeedList />} />
             </Route>
             
+            {/* Public unsubscribe page - standalone, no layout required */}
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
