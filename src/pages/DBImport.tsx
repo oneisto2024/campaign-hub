@@ -87,7 +87,7 @@ const MOCK_IMPORT_PROJECTS: ImportProject[] = [
       employeeSizeRanges: ['10,000+'],
       industry: 'All industries', revenue: '$1B+',
       installedTechBase: 'SAP, Oracle, Salesforce',
-      contactPerCompany: '5', suppressionList: '',
+      contactPerCompany: '5', hasSuppressionList: 'no', suppressionEmails: '', suppressionDomains: '', suppressionCompanies: '',
       hasAcceptedCompanyList: 'yes', acceptedCompanyFile: null, isTelemarketing: 'yes',
     },
     publishedAt: new Date('2026-01-19'),
@@ -1065,7 +1065,15 @@ const DBImport = () => {
 
                 <div className="space-y-1">
                   <h4 className="font-medium text-sm">Suppression List</h4>
-                  <p className="text-sm text-muted-foreground">{scopeProject.scopeData.suppressionList || 'None'}</p>
+                  {scopeProject.scopeData.hasSuppressionList === 'yes' ? (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      {scopeProject.scopeData.suppressionEmails && <p>Emails: {scopeProject.scopeData.suppressionEmails}</p>}
+                      {scopeProject.scopeData.suppressionDomains && <p>Domains: {scopeProject.scopeData.suppressionDomains}</p>}
+                      {scopeProject.scopeData.suppressionCompanies && <p>Companies: {scopeProject.scopeData.suppressionCompanies}</p>}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">None</p>
+                  )}
                 </div>
 
                 <div className="space-y-1">

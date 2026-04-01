@@ -97,8 +97,8 @@ const App = () => (
               {/* GDPR */}
               <Route path="/gdpr/compliance" element={<GDPRCompliance />} />
 
-              {/* Unsubscribe */}
-              <Route path="/unsubscribe" element={<Unsubscribe />} />
+              {/* Unsubscribe - inside layout for admin view */}
+              <Route path="/administration/unsubscribe-preview" element={<Unsubscribe />} />
 
               {/* Administration - Unsub Admin */}
               <Route path="/administration/unsubscribe-log" element={<UnsubscribeAdmin />} />
@@ -113,6 +113,9 @@ const App = () => (
                <Route path="/ops/unsubscribe-lists" element={<PlaceholderPage />} />
                <Route path="/ops/seed-list" element={<SeedList />} />
             </Route>
+            
+            {/* Public unsubscribe page - standalone, no layout required */}
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

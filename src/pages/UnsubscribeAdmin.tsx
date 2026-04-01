@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Download, UserMinus } from 'lucide-react';
+import { Search, Download, UserMinus, Copy, Check } from 'lucide-react';
 import HolidayBanner from '@/components/HolidayBanner';
+import { useToast } from '@/hooks/use-toast';
 
 interface UnsubRecord {
   id: string;
@@ -23,13 +24,38 @@ const MOCK_UNSUB: UnsubRecord[] = [
 ];
 
 const UnsubscribeAdmin = () => {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const [allRecords, setAllRecords] = useState<UnsubRecord[]>(MOCK_UNSUB);
+  const [copied, setCopied] = useState(false);
+
+  // Load entries from localStorage (submitted via public /unsubscribe page)
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('unsub_requests') || '[]');
+      if (stored.length > 0) {
+        const parsed: UnsubRecord[] = stored.map((s: any) => ({
+          id: s.id,
+          email: s.email,
+          reason: s.reason,
+          unsubAt: new Date(s.unsubAt),
+          campaignId: s.campaignId,
+          status: s.status as 'processing' | 'removed',
+        }));
+        setAllRecords(prev => {
+          const existingIds = new Set(prev.map(r => r.id));
+          const newOnes = parsed.filter(p => !existingIds.has(p.id));
+          return [...prev, ...newOnes];
+        });
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   const filtered = useMemo(() => {
-    if (!searchQuery) return MOCK_UNSUB;
+    if (!searchQuery) return allRecords;
     const q = searchQuery.toLowerCase();
-    return MOCK_UNSUB.filter(r => r.email.toLowerCase().includes(q) || r.reason.toLowerCase().includes(q) || r.campaignId.toLowerCase().includes(q));
-  }, [searchQuery]);
+    return allRecords.filter(r => r.email.toLowerCase().includes(q) || r.reason.toLowerCase().includes(q) || r.campaignId.toLowerCase().includes(q));
+  }, [searchQuery, allRecords]);
 
   const exportCsv = () => {
     const headers = ['Email', 'Reason', 'Unsubscribed At', 'Campaign ID', 'Status'];
@@ -41,6 +67,15 @@ const UnsubscribeAdmin = () => {
     URL.revokeObjectURL(url);
   };
 
+  const unsubLink = `${window.location.origin}/unsubscribe`;
+
+  const copyUnsubLink = () => {
+    navigator.clipboard.writeText(unsubLink);
+    setCopied(true);
+    toast({ title: 'Unsub link copied!' });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -48,6 +83,24 @@ const UnsubscribeAdmin = () => {
         <h1 className="text-2xl font-semibold text-foreground">Unsubscribe Requests</h1>
       </div>
       <HolidayBanner />
+
+      {/* Unsub Link Card */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-medium mb-1">Public Unsubscribe Link</p>
+              <p className="text-xs text-muted-foreground mb-2">Use this in your emails. Supports query params: <code className="text-[10px] bg-muted px-1 rounded">?email=user@example.com&campaign=PRJ-001</code></p>
+              <code className="text-xs bg-muted px-2 py-1 rounded block break-all">{unsubLink}</code>
+            </div>
+            <Button variant="outline" size="sm" onClick={copyUnsubLink} className="shrink-0">
+              {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+              {copied ? 'Copied' : 'Copy Link'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="border-b">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { CheckCircle } from 'lucide-react';
@@ -14,19 +15,53 @@ const DEFAULT_REASONS = [
   'The content is not what I expected',
 ];
 
+// This page works as a standalone public page — no auth required.
+// It reads optional query params: ?email=...&campaign=...
 const Unsubscribe = () => {
+  const params = new URLSearchParams(window.location.search);
+  const prefillEmail = params.get('email') || '';
+  const campaignId = params.get('campaign') || '';
+
+  const [email, setEmail] = useState(prefillEmail);
   const [selectedReason, setSelectedReason] = useState('');
   const [otherReason, setOtherReason] = useState('');
   const [confirmed, setConfirmed] = useState(false);
+  const [emailError, setEmailError] = useState('');
+
+  const validateEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
   const handleConfirm = () => {
+    if (!email.trim() || !validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
     if (!selectedReason && !otherReason.trim()) return;
+
+    // Store unsubscribe entry in localStorage so UnsubscribeAdmin can pick it up
+    const reason = selectedReason === 'other' ? otherReason : selectedReason;
+    const entry = {
+      id: crypto.randomUUID(),
+      email: email.trim().toLowerCase(),
+      reason,
+      unsubAt: new Date().toISOString(),
+      campaignId: campaignId || 'DIRECT',
+      status: 'processing',
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('unsub_requests') || '[]');
+      existing.push(entry);
+      localStorage.setItem('unsub_requests', JSON.stringify(existing));
+    } catch {
+      // If localStorage fails, still show confirmation
+    }
+
     setConfirmed(true);
   };
 
   if (confirmed) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="min-h-[60vh] flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center">
           <CardContent className="pt-8 pb-8 space-y-4">
             <CheckCircle className="h-16 w-16 mx-auto text-chart-1" />
@@ -44,13 +79,30 @@ const Unsubscribe = () => {
   }
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="min-h-[60vh] flex items-center justify-center p-4">
       <Card className="max-w-lg w-full">
         <CardHeader>
           <CardTitle>Unsubscribe</CardTitle>
           <p className="text-sm text-muted-foreground">We're sorry to see you go. Please let us know why you'd like to unsubscribe.</p>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div>
+            <Label htmlFor="unsub-email">Your Email Address<span className="text-destructive">*</span></Label>
+            <Input
+              id="unsub-email"
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+              placeholder="you@example.com"
+              className={`mt-1 ${emailError ? 'border-destructive' : ''}`}
+            />
+            {emailError && <p className="text-xs text-destructive mt-1">{emailError}</p>}
+          </div>
+
+          {campaignId && (
+            <p className="text-xs text-muted-foreground">Campaign: <span className="font-mono">{campaignId}</span></p>
+          )}
+
           <RadioGroup value={selectedReason} onValueChange={(v) => { setSelectedReason(v); setOtherReason(''); }}>
             {DEFAULT_REASONS.map((reason) => (
               <div key={reason} className="flex items-center space-x-2">
@@ -77,7 +129,7 @@ const Unsubscribe = () => {
           <Button
             className="w-full"
             onClick={handleConfirm}
-            disabled={!selectedReason || (selectedReason === 'other' && !otherReason.trim())}
+            disabled={!selectedReason || (selectedReason === 'other' && !otherReason.trim()) || !email.trim()}
           >
             Confirm Unsubscribe
           </Button>

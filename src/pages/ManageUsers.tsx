@@ -16,6 +16,7 @@ const DEFAULT_COLUMNS: ColumnDef[] = [
   { key: 'email', label: 'Email', visible: true, width: 220, minWidth: 140 },
   { key: 'role', label: 'Role', visible: true, width: 120, minWidth: 80 },
   { key: 'shift', label: 'Shift', visible: true, width: 140, minWidth: 90 },
+  { key: 'isProjectManager', label: 'Project Manager', visible: true, width: 140, minWidth: 100 },
   { key: 'modules', label: 'Modules', visible: true, width: 100, minWidth: 70 },
   { key: 'createdOn', label: 'Created On', visible: true, width: 140, minWidth: 100 },
   { key: 'status', label: 'Active', visible: true, width: 100, minWidth: 80 },
@@ -31,13 +32,15 @@ interface UserEntry {
   modulesCount: number;
   createdOn: string;
   active: boolean;
+  isProjectManager: boolean;
 }
 
 const SAMPLE_USERS: UserEntry[] = [
-  { id: '1', firstName: 'John', lastName: 'Doe', email: 'john@company.com', role: 'Admin', shift: 'Morning', modulesCount: 13, createdOn: '2025-01-10', active: true },
-  { id: '2', firstName: 'Jane', lastName: 'Smith', email: 'jane@company.com', role: 'Manager', shift: 'Afternoon', modulesCount: 8, createdOn: '2025-01-15', active: true },
-  { id: '3', firstName: 'Bob', lastName: 'Wilson', email: 'bob@partner.org', role: 'User', shift: 'Flexible', modulesCount: 5, createdOn: '2025-02-01', active: false },
-  { id: '4', firstName: 'Alice', lastName: 'Brown', email: 'alice@vendor.net', role: 'User', shift: 'Night', modulesCount: 3, createdOn: '2025-02-05', active: true },
+  { id: '1', firstName: 'John', lastName: 'Doe', email: 'john@company.com', role: 'Admin', shift: 'Morning', modulesCount: 13, createdOn: '2025-01-10', active: true, isProjectManager: true },
+  { id: '2', firstName: 'Jane', lastName: 'Smith', email: 'jane@company.com', role: 'Manager', shift: 'Afternoon', modulesCount: 8, createdOn: '2025-01-15', active: true, isProjectManager: true },
+  { id: '3', firstName: 'Bob', lastName: 'Wilson', email: 'bob@partner.org', role: 'User', shift: 'Flexible', modulesCount: 5, createdOn: '2025-02-01', active: false, isProjectManager: false },
+  { id: '4', firstName: 'Alice', lastName: 'Brown', email: 'alice@vendor.net', role: 'User', shift: 'Night', modulesCount: 3, createdOn: '2025-02-05', active: true, isProjectManager: false },
+  { id: '5', firstName: 'Mike', lastName: 'Johnson', email: 'mike@company.com', role: 'Manager', shift: 'Morning', modulesCount: 10, createdOn: '2025-01-20', active: true, isProjectManager: true },
 ];
 
 const ManageUsers = () => {
@@ -52,9 +55,23 @@ const ManageUsers = () => {
         const newActive = !u.active;
         toast({
           title: newActive ? 'User Activated' : 'User Deactivated',
-          description: `${u.firstName} ${u.lastName} has been ${newActive ? 'activated' : 'deactivated'}. They ${newActive ? 'can' : 'cannot'} login now.`,
+          description: `${u.firstName} ${u.lastName} has been ${newActive ? 'activated' : 'deactivated'}.`,
         });
         return { ...u, active: newActive };
+      }
+      return u;
+    }));
+  };
+
+  const toggleProjectManager = (id: string) => {
+    setUsers(prev => prev.map(u => {
+      if (u.id === id) {
+        const newPM = !u.isProjectManager;
+        toast({
+          title: newPM ? 'Marked as Project Manager' : 'Removed from Project Managers',
+          description: `${u.firstName} ${u.lastName} ${newPM ? 'will now appear' : 'will no longer appear'} in the Project Manager dropdown.`,
+        });
+        return { ...u, isProjectManager: newPM };
       }
       return u;
     }));
@@ -77,6 +94,13 @@ const ManageUsers = () => {
           </Badge>
         );
       case 'shift': return item.shift;
+      case 'isProjectManager':
+        return (
+          <Switch
+            checked={item.isProjectManager}
+            onCheckedChange={() => toggleProjectManager(item.id)}
+          />
+        );
       case 'modules': return `${item.modulesCount} modules`;
       case 'createdOn': return item.createdOn;
       case 'status':
@@ -94,7 +118,7 @@ const ManageUsers = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <p className="text-sm font-light text-muted-foreground">Administration</p>
           <h1 className="text-2xl font-semibold text-foreground">Manage Users</h1>

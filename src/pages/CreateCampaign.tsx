@@ -25,12 +25,17 @@ const CAMPAIGN_TYPES = [
   { id: 'appointment', label: 'Appointment Setting' },
 ];
 
-// Mock data - replace with actual data from backend
-const MOCK_PROJECT_MANAGERS = [
-  { id: '1', name: 'John Doe', email: 'john@company.com' },
-  { id: '2', name: 'Jane Smith', email: 'jane@company.com' },
-  { id: '3', name: 'Mike Johnson', email: 'mike@company.com' },
-];
+// Pull project managers from ManageUsers data (users with isProjectManager=true)
+const getProjectManagers = () => {
+  // In a real app this would come from an API/context. For now, hardcoded list matching ManageUsers.
+  return [
+    { id: '1', name: 'John Doe', email: 'john@company.com' },
+    { id: '2', name: 'Jane Smith', email: 'jane@company.com' },
+    { id: '5', name: 'Mike Johnson', email: 'mike@company.com' },
+  ];
+};
+
+const MOCK_PROJECT_MANAGERS = getProjectManagers();
 
 const MOCK_CLIENTS = [
   { id: '1', name: 'Acme Corp', email: 'contact@acme.com' },
@@ -66,6 +71,7 @@ interface CustomQuestion {
 interface MilestoneDate {
   startDate: Date | undefined;
   endDate: Date | undefined;
+  leads?: string;
 }
 
 export interface ScopeData {
@@ -81,7 +87,10 @@ export interface ScopeData {
   revenue: string;
   installedTechBase: string;
   contactPerCompany: string;
-  suppressionList: string;
+  hasSuppressionList: 'yes' | 'no';
+  suppressionEmails: string;
+  suppressionDomains: string;
+  suppressionCompanies: string;
   hasAcceptedCompanyList: 'yes' | 'no' | 'none';
   acceptedCompanyFile: File | null;
   isTelemarketing: 'yes' | 'no';
@@ -120,7 +129,10 @@ const CreateCampaign = () => {
   const [revenue, setRevenue] = useState('');
   const [installedTechBase, setInstalledTechBase] = useState('');
   const [contactPerCompany, setContactPerCompany] = useState('');
-  const [suppressionList, setSuppressionList] = useState('');
+  const [hasSuppressionList, setHasSuppressionList] = useState<'yes' | 'no'>('no');
+  const [suppressionEmails, setSuppressionEmails] = useState('');
+  const [suppressionDomains, setSuppressionDomains] = useState('');
+  const [suppressionCompanies, setSuppressionCompanies] = useState('');
   const [hasAcceptedCompanyList, setHasAcceptedCompanyList] = useState<'yes' | 'no' | 'none'>('none');
   const [acceptedCompanyFile, setAcceptedCompanyFile] = useState<File | null>(null);
   const [isTelemarketing, setIsTelemarketing] = useState<'yes' | 'no'>('no');
@@ -267,38 +279,52 @@ const CreateCampaign = () => {
     }
   };
 
-  const validateStep = (step: number): boolean => {
+  const getValidationErrors = (step: number): string[] => {
+    const errors: string[] = [];
     switch (step) {
       case 1:
-        return !!(campaignName && clientId && projectManager && projectClientEmail);
+        if (!campaignName) errors.push('Campaign Name');
+        if (!clientId) errors.push('Client ID');
+        if (!projectManager) errors.push('Project Manager');
+        if (!projectClientEmail) errors.push('Project Client Email');
+        break;
       case 2:
-        return !!campaignType;
+        if (!campaignType) errors.push('Campaign Type');
+        break;
       case 3:
-        if (hasScopeDocument === 'yes') {
-          return scopeFiles.length > 0;
-        } else if (hasScopeDocument === 'no') {
-          return selectedCountries.length > 0 && targetAudience.length > 0;
+        if (!hasScopeDocument) { errors.push('Scope Document selection'); break; }
+        if (hasScopeDocument === 'yes' && scopeFiles.length === 0) errors.push('Scope Document file upload');
+        if (hasScopeDocument === 'no') {
+          if (selectedCountries.length === 0) errors.push('Countries');
+          if (!targetAudience) errors.push('Target Audience');
         }
-        return !!hasScopeDocument;
+        break;
       case 4:
-        if (assetType === 'file') {
-          return assetFiles.length > 0;
-        } else if (assetType === 'link') {
-          return assetLinks.some(link => validateUrl(link));
-        }
-        return true;
+        if (assetType === 'file' && assetFiles.length === 0) errors.push('Asset file upload');
+        if (assetType === 'link' && !assetLinks.some(link => validateUrl(link))) errors.push('At least one valid Asset URL');
+        break;
       case 5:
-        return !!(leadsRequired && campaignStartDate && campaignEndDate && milestonesCount && parseInt(milestonesCount) > 0);
-      default:
-        return true;
+        if (!leadsRequired) errors.push('No. of Leads Required');
+        if (!campaignStartDate) errors.push('Start Date');
+        if (!campaignEndDate) errors.push('End Date');
+        if (!milestonesCount || parseInt(milestonesCount) <= 0) errors.push('Milestones count');
+        break;
     }
+    return errors;
   };
+
+  const validateStep = (step: number): boolean => getValidationErrors(step).length === 0;
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
     } else {
-      toast({ title: 'Please fill all required fields', variant: 'destructive' });
+      const errors = getValidationErrors(currentStep);
+      toast({ 
+        title: 'Missing required fields', 
+        description: `Please fill: ${errors.join(', ')}`,
+        variant: 'destructive' 
+      });
     }
   };
 
@@ -328,7 +354,10 @@ const CreateCampaign = () => {
     setRevenue('');
     setInstalledTechBase('');
     setContactPerCompany('');
-    setSuppressionList('');
+    setHasSuppressionList('no');
+    setSuppressionEmails('');
+    setSuppressionDomains('');
+    setSuppressionCompanies('');
     setHasAcceptedCompanyList('none');
     setAcceptedCompanyFile(null);
     setIsTelemarketing('no');
@@ -356,15 +385,19 @@ const CreateCampaign = () => {
     revenue,
     installedTechBase,
     contactPerCompany,
-    suppressionList,
+    hasSuppressionList,
+    suppressionEmails,
+    suppressionDomains,
+    suppressionCompanies,
     hasAcceptedCompanyList,
     acceptedCompanyFile,
     isTelemarketing,
   });
 
   const handleSubmit = () => {
-    if (!validateStep(currentStep)) {
-      toast({ title: 'Please fill all required fields', variant: 'destructive' });
+    const errors = getValidationErrors(currentStep);
+    if (errors.length > 0) {
+      toast({ title: 'Missing required fields', description: `Please fill: ${errors.join(', ')}`, variant: 'destructive' });
       return;
     }
 
@@ -810,15 +843,57 @@ const CreateCampaign = () => {
               </div>
 
               {/* Suppression List */}
-              <div>
-                <Label htmlFor="suppressionList">Suppression List (Email/Domain/Company)</Label>
-                <Input
-                  id="suppressionList"
-                  value={suppressionList}
-                  onChange={(e) => setSuppressionList(e.target.value)}
-                  placeholder="Enter emails, domains, or companies to suppress..."
-                  className="mt-1"
-                />
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Suppression List (Email/Domain/Company)</Label>
+                <RadioGroup
+                  value={hasSuppressionList}
+                  onValueChange={(v) => setHasSuppressionList(v as 'yes' | 'no')}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="supp-yes" />
+                    <Label htmlFor="supp-yes" className="font-normal">Yes</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="supp-no" />
+                    <Label htmlFor="supp-no" className="font-normal">No</Label>
+                  </div>
+                </RadioGroup>
+
+                {hasSuppressionList === 'yes' && (
+                  <div className="space-y-3 p-3 bg-background rounded border">
+                    <div>
+                      <Label htmlFor="suppressionEmails" className="text-sm">Suppression Emails</Label>
+                      <Input
+                        id="suppressionEmails"
+                        value={suppressionEmails}
+                        onChange={(e) => setSuppressionEmails(e.target.value)}
+                        placeholder="email1@example.com, email2@example.com"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="suppressionDomains" className="text-sm">Suppression Domains</Label>
+                      <Input
+                        id="suppressionDomains"
+                        value={suppressionDomains}
+                        onChange={(e) => setSuppressionDomains(e.target.value)}
+                        placeholder="competitor1.com, competitor2.com"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="suppressionCompanies" className="text-sm">Suppression Companies</Label>
+                      <Input
+                        id="suppressionCompanies"
+                        value={suppressionCompanies}
+                        onChange={(e) => setSuppressionCompanies(e.target.value)}
+                        placeholder="Company A, Company B"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Accepted Company List */}
@@ -1022,7 +1097,11 @@ const CreateCampaign = () => {
     </div>
   );
 
-  const renderTab5 = () => (
+  const renderTab5 = () => {
+    const milestoneCount = parseInt(milestonesCount) || 0;
+    const isSingleMilestone = milestoneCount === 1;
+
+    return (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h3 className="text-lg font-medium text-foreground">Client Allocation & Milestones</h3>
@@ -1130,85 +1209,112 @@ const CreateCampaign = () => {
           />
         </div>
 
-        {parseInt(milestonesCount) > 0 && (
+        {milestoneCount > 0 && (
           <div className="space-y-4 p-4 bg-muted/50 rounded-lg max-h-80 overflow-y-auto">
-            <Label>Milestone Dates</Label>
-            {milestoneDates.map((milestone, index) => (
-              <div key={index} className="p-3 bg-background rounded border">
-                <Label className="text-sm font-medium">Milestone {index + 1}</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Start Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            'w-full justify-start text-left font-normal mt-1',
-                            !milestone.startDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {milestone.startDate ? format(milestone.startDate, 'PP') : 'Start date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={milestone.startDate}
-                          onSelect={(date) => updateMilestoneDate(index, 'startDate', date)}
-                          disabled={(date) => {
-                            if (campaignStartDate && date < campaignStartDate) return true;
-                            if (campaignEndDate && date > campaignEndDate) return true;
-                            return false;
-                          }}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+            <Label>Milestone Details</Label>
+            {isSingleMilestone ? (
+              <div className="p-3 bg-background rounded border">
+                <Label className="text-sm font-medium">Milestone 1</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Uses campaign dates: {campaignStartDate ? format(campaignStartDate, 'PP') : '—'} to {campaignEndDate ? format(campaignEndDate, 'PP') : '—'}
+                </p>
+                <p className="text-sm mt-2">
+                  Leads: <strong>{leadsRequired || '—'}</strong>
+                </p>
+              </div>
+            ) : (
+              milestoneDates.map((milestone, index) => (
+                <div key={index} className="p-3 bg-background rounded border">
+                  <Label className="text-sm font-medium">Milestone {index + 1}</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Start Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              'w-full justify-start text-left font-normal mt-1',
+                              !milestone.startDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3 w-3" />
+                            {milestone.startDate ? format(milestone.startDate, 'PP') : 'Start date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={milestone.startDate}
+                            onSelect={(date) => updateMilestoneDate(index, 'startDate', date)}
+                            disabled={(date) => {
+                              if (campaignStartDate && date < campaignStartDate) return true;
+                              if (campaignEndDate && date > campaignEndDate) return true;
+                              return false;
+                            }}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">End Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              'w-full justify-start text-left font-normal mt-1',
+                              !milestone.endDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3 w-3" />
+                            {milestone.endDate ? format(milestone.endDate, 'PP') : 'End date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={milestone.endDate}
+                            onSelect={(date) => updateMilestoneDate(index, 'endDate', date)}
+                            disabled={(date) => {
+                              if (milestone.startDate && date < milestone.startDate) return true;
+                              if (campaignEndDate && date > campaignEndDate) return true;
+                              return false;
+                            }}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">End Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            'w-full justify-start text-left font-normal mt-1',
-                            !milestone.endDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {milestone.endDate ? format(milestone.endDate, 'PP') : 'End date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={milestone.endDate}
-                          onSelect={(date) => updateMilestoneDate(index, 'endDate', date)}
-                          disabled={(date) => {
-                            if (milestone.startDate && date < milestone.startDate) return true;
-                            if (campaignEndDate && date > campaignEndDate) return true;
-                            return false;
-                          }}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  <div className="mt-2">
+                    <Label className="text-xs text-muted-foreground">Leads for this milestone</Label>
+                    <Input
+                      type="number"
+                      placeholder="Lead count"
+                      value={milestone.leads || ''}
+                      onChange={(e) => {
+                        const newDates = [...milestoneDates];
+                        newDates[index] = { ...newDates[index], leads: e.target.value };
+                        setMilestoneDates(newDates);
+                      }}
+                      className="mt-1"
+                    />
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6">
