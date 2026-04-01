@@ -472,7 +472,7 @@ const AllProjects = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleRevokePublish}>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleRevokePublish}>
               Revoke
             </AlertDialogAction>
           </AlertDialogFooter>
