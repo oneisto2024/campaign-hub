@@ -97,8 +97,8 @@ const App = () => (
               {/* GDPR */}
               <Route path="/gdpr/compliance" element={<GDPRCompliance />} />
 
-              {/* Unsubscribe */}
-              <Route path="/unsubscribe" element={<Unsubscribe />} />
+              {/* Unsubscribe - inside layout for admin view */}
+              <Route path="/administration/unsubscribe-preview" element={<Unsubscribe />} />
 
               {/* Administration - Unsub Admin */}
               <Route path="/administration/unsubscribe-log" element={<UnsubscribeAdmin />} />
