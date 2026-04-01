@@ -71,6 +71,7 @@ interface CustomQuestion {
 interface MilestoneDate {
   startDate: Date | undefined;
   endDate: Date | undefined;
+  leads?: string;
 }
 
 export interface ScopeData {
