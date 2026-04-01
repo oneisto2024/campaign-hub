@@ -86,7 +86,10 @@ export interface ScopeData {
   revenue: string;
   installedTechBase: string;
   contactPerCompany: string;
-  suppressionList: string;
+  hasSuppressionList: 'yes' | 'no';
+  suppressionEmails: string;
+  suppressionDomains: string;
+  suppressionCompanies: string;
   hasAcceptedCompanyList: 'yes' | 'no' | 'none';
   acceptedCompanyFile: File | null;
   isTelemarketing: 'yes' | 'no';
