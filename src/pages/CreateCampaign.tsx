@@ -394,8 +394,9 @@ const CreateCampaign = () => {
   });
 
   const handleSubmit = () => {
-    if (!validateStep(currentStep)) {
-      toast({ title: 'Please fill all required fields', variant: 'destructive' });
+    const errors = getValidationErrors(currentStep);
+    if (errors.length > 0) {
+      toast({ title: 'Missing required fields', description: `Please fill: ${errors.join(', ')}`, variant: 'destructive' });
       return;
     }
 
