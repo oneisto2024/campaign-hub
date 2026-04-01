@@ -526,8 +526,16 @@ const AllProjects = () => {
 
                 {/* Suppression List */}
                 <div className="space-y-1">
-                  <h4 className="font-medium text-sm">Suppression List (Email/Domain/Company)</h4>
-                  <p className="text-sm text-muted-foreground">{selectedProject.scopeData.suppressionList || 'None'}</p>
+                  <h4 className="font-medium text-sm">Suppression List</h4>
+                  {selectedProject.scopeData.hasSuppressionList === 'yes' ? (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      {selectedProject.scopeData.suppressionEmails && <p><span className="font-medium text-foreground">Emails:</span> {selectedProject.scopeData.suppressionEmails}</p>}
+                      {selectedProject.scopeData.suppressionDomains && <p><span className="font-medium text-foreground">Domains:</span> {selectedProject.scopeData.suppressionDomains}</p>}
+                      {selectedProject.scopeData.suppressionCompanies && <p><span className="font-medium text-foreground">Companies:</span> {selectedProject.scopeData.suppressionCompanies}</p>}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">None</p>
+                  )}
                 </div>
 
                 {/* Accepted Company List */}

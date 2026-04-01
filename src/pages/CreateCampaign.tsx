@@ -827,15 +827,57 @@ const CreateCampaign = () => {
               </div>
 
               {/* Suppression List */}
-              <div>
-                <Label htmlFor="suppressionList">Suppression List (Email/Domain/Company)</Label>
-                <Input
-                  id="suppressionList"
-                  value={suppressionList}
-                  onChange={(e) => setSuppressionList(e.target.value)}
-                  placeholder="Enter emails, domains, or companies to suppress..."
-                  className="mt-1"
-                />
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Suppression List (Email/Domain/Company)</Label>
+                <RadioGroup
+                  value={hasSuppressionList}
+                  onValueChange={(v) => setHasSuppressionList(v as 'yes' | 'no')}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="supp-yes" />
+                    <Label htmlFor="supp-yes" className="font-normal">Yes</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="supp-no" />
+                    <Label htmlFor="supp-no" className="font-normal">No</Label>
+                  </div>
+                </RadioGroup>
+
+                {hasSuppressionList === 'yes' && (
+                  <div className="space-y-3 p-3 bg-background rounded border">
+                    <div>
+                      <Label htmlFor="suppressionEmails" className="text-sm">Suppression Emails</Label>
+                      <Input
+                        id="suppressionEmails"
+                        value={suppressionEmails}
+                        onChange={(e) => setSuppressionEmails(e.target.value)}
+                        placeholder="email1@example.com, email2@example.com"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="suppressionDomains" className="text-sm">Suppression Domains</Label>
+                      <Input
+                        id="suppressionDomains"
+                        value={suppressionDomains}
+                        onChange={(e) => setSuppressionDomains(e.target.value)}
+                        placeholder="competitor1.com, competitor2.com"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="suppressionCompanies" className="text-sm">Suppression Companies</Label>
+                      <Input
+                        id="suppressionCompanies"
+                        value={suppressionCompanies}
+                        onChange={(e) => setSuppressionCompanies(e.target.value)}
+                        placeholder="Company A, Company B"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Accepted Company List */}
