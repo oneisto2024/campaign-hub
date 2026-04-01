@@ -87,7 +87,7 @@ const MOCK_IMPORT_PROJECTS: ImportProject[] = [
       employeeSizeRanges: ['10,000+'],
       industry: 'All industries', revenue: '$1B+',
       installedTechBase: 'SAP, Oracle, Salesforce',
-      contactPerCompany: '5', suppressionList: '',
+      contactPerCompany: '5', hasSuppressionList: 'no', suppressionEmails: '', suppressionDomains: '', suppressionCompanies: '',
       hasAcceptedCompanyList: 'yes', acceptedCompanyFile: null, isTelemarketing: 'yes',
     },
     publishedAt: new Date('2026-01-19'),
