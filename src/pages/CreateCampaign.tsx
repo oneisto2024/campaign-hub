@@ -1096,7 +1096,11 @@ const CreateCampaign = () => {
     </div>
   );
 
-  const renderTab5 = () => (
+  const renderTab5 = () => {
+    const milestoneCount = parseInt(milestonesCount) || 0;
+    const isSingleMilestone = milestoneCount === 1;
+
+    return (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h3 className="text-lg font-medium text-foreground">Client Allocation & Milestones</h3>
@@ -1204,81 +1208,108 @@ const CreateCampaign = () => {
           />
         </div>
 
-        {parseInt(milestonesCount) > 0 && (
+        {milestoneCount > 0 && (
           <div className="space-y-4 p-4 bg-muted/50 rounded-lg max-h-80 overflow-y-auto">
-            <Label>Milestone Dates</Label>
-            {milestoneDates.map((milestone, index) => (
-              <div key={index} className="p-3 bg-background rounded border">
-                <Label className="text-sm font-medium">Milestone {index + 1}</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Start Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            'w-full justify-start text-left font-normal mt-1',
-                            !milestone.startDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {milestone.startDate ? format(milestone.startDate, 'PP') : 'Start date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={milestone.startDate}
-                          onSelect={(date) => updateMilestoneDate(index, 'startDate', date)}
-                          disabled={(date) => {
-                            if (campaignStartDate && date < campaignStartDate) return true;
-                            if (campaignEndDate && date > campaignEndDate) return true;
-                            return false;
-                          }}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+            <Label>Milestone Details</Label>
+            {isSingleMilestone ? (
+              <div className="p-3 bg-background rounded border">
+                <Label className="text-sm font-medium">Milestone 1</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Uses campaign dates: {campaignStartDate ? format(campaignStartDate, 'PP') : '—'} to {campaignEndDate ? format(campaignEndDate, 'PP') : '—'}
+                </p>
+                <p className="text-sm mt-2">
+                  Leads: <strong>{leadsRequired || '—'}</strong>
+                </p>
+              </div>
+            ) : (
+              milestoneDates.map((milestone, index) => (
+                <div key={index} className="p-3 bg-background rounded border">
+                  <Label className="text-sm font-medium">Milestone {index + 1}</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Start Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              'w-full justify-start text-left font-normal mt-1',
+                              !milestone.startDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3 w-3" />
+                            {milestone.startDate ? format(milestone.startDate, 'PP') : 'Start date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={milestone.startDate}
+                            onSelect={(date) => updateMilestoneDate(index, 'startDate', date)}
+                            disabled={(date) => {
+                              if (campaignStartDate && date < campaignStartDate) return true;
+                              if (campaignEndDate && date > campaignEndDate) return true;
+                              return false;
+                            }}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">End Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              'w-full justify-start text-left font-normal mt-1',
+                              !milestone.endDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3 w-3" />
+                            {milestone.endDate ? format(milestone.endDate, 'PP') : 'End date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={milestone.endDate}
+                            onSelect={(date) => updateMilestoneDate(index, 'endDate', date)}
+                            disabled={(date) => {
+                              if (milestone.startDate && date < milestone.startDate) return true;
+                              if (campaignEndDate && date > campaignEndDate) return true;
+                              return false;
+                            }}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">End Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            'w-full justify-start text-left font-normal mt-1',
-                            !milestone.endDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {milestone.endDate ? format(milestone.endDate, 'PP') : 'End date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={milestone.endDate}
-                          onSelect={(date) => updateMilestoneDate(index, 'endDate', date)}
-                          disabled={(date) => {
-                            if (milestone.startDate && date < milestone.startDate) return true;
-                            if (campaignEndDate && date > campaignEndDate) return true;
-                            return false;
-                          }}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  <div className="mt-2">
+                    <Label className="text-xs text-muted-foreground">Leads for this milestone</Label>
+                    <Input
+                      type="number"
+                      placeholder="Lead count"
+                      value={milestone.leads || ''}
+                      onChange={(e) => {
+                        const newDates = [...milestoneDates];
+                        newDates[index] = { ...newDates[index], leads: e.target.value };
+                        setMilestoneDates(newDates);
+                      }}
+                      className="mt-1"
+                    />
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
+        )}
         )}
       </div>
     </div>
