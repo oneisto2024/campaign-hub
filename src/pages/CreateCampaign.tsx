@@ -25,12 +25,17 @@ const CAMPAIGN_TYPES = [
   { id: 'appointment', label: 'Appointment Setting' },
 ];
 
-// Mock data - replace with actual data from backend
-const MOCK_PROJECT_MANAGERS = [
-  { id: '1', name: 'John Doe', email: 'john@company.com' },
-  { id: '2', name: 'Jane Smith', email: 'jane@company.com' },
-  { id: '3', name: 'Mike Johnson', email: 'mike@company.com' },
-];
+// Pull project managers from ManageUsers data (users with isProjectManager=true)
+const getProjectManagers = () => {
+  // In a real app this would come from an API/context. For now, hardcoded list matching ManageUsers.
+  return [
+    { id: '1', name: 'John Doe', email: 'john@company.com' },
+    { id: '2', name: 'Jane Smith', email: 'jane@company.com' },
+    { id: '5', name: 'Mike Johnson', email: 'mike@company.com' },
+  ];
+};
+
+const MOCK_PROJECT_MANAGERS = getProjectManagers();
 
 const MOCK_CLIENTS = [
   { id: '1', name: 'Acme Corp', email: 'contact@acme.com' },
