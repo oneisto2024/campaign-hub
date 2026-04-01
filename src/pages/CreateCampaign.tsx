@@ -339,7 +339,10 @@ const CreateCampaign = () => {
     setRevenue('');
     setInstalledTechBase('');
     setContactPerCompany('');
-    setSuppressionList('');
+    setHasSuppressionList('no');
+    setSuppressionEmails('');
+    setSuppressionDomains('');
+    setSuppressionCompanies('');
     setHasAcceptedCompanyList('none');
     setAcceptedCompanyFile(null);
     setIsTelemarketing('no');
