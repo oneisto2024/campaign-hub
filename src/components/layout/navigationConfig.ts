@@ -140,7 +140,7 @@ export const adminGroups: NavGroup[] = [
     items: [
       { title: 'Upload Email Settings', href: '/email-config/upload-settings', icon: Settings },
       { title: 'Email Validation API', href: '/email-config/validation-api', icon: Shield },
-      { title: 'ICP Validation API', href: '/email-config/icp-validation-api', icon: Target },
+      { title: 'ICP Validation API', href: '/email-config/icp-validation-api', icon: ClipboardCheck },
       { title: 'Webhook & API', href: '/email-config/webhook-api', icon: Link },
     ],
   },
