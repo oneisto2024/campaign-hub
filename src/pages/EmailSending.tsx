@@ -744,7 +744,6 @@ const EmailSending = () => {
                 <TabsTrigger value="heatmap"><MousePointerClick className="h-3 w-3 mr-1" /> Heatmap</TabsTrigger>
                 <TabsTrigger value="domains"><Globe className="h-3 w-3 mr-1" /> Domains</TabsTrigger>
                 <TabsTrigger value="settings"><Settings className="h-3 w-3 mr-1" /> Settings</TabsTrigger>
-                <TabsTrigger value="webhook"><Webhook className="h-3 w-3 mr-1" /> Webhook</TabsTrigger>
               </TabsList>
 
               <ScrollArea className="h-[65vh] mt-4">
