@@ -447,11 +447,8 @@ const EmailDraft = () => {
                                   <tr className="border-b border-border/50">
                                     <th className="text-left py-2 font-medium text-muted-foreground w-8">S.No</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Batch</th>
-                                    <th className="text-left py-2 font-medium text-muted-foreground">Valid</th>
-                                     <th className="text-left py-2 font-medium text-muted-foreground">Catch-All</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Total</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Country</th>
-                                    <th className="text-left py-2 font-medium text-muted-foreground">Published</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Template</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Status</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Funnels</th>
