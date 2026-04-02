@@ -98,18 +98,19 @@ const MOCK_IMPORT_PROJECTS: ImportProject[] = [
 
 const DB_IMPORT_COLUMNS: ColumnDef[] = [
   { key: 'sNo', label: 'S.No', visible: true, minWidth: 50, width: 60 },
-  { key: 'projectName', label: 'Project Name', visible: true, minWidth: 100, width: 200 },
-  { key: 'batchName', label: 'Batch Name', visible: true, minWidth: 80, width: 130 },
-  { key: 'projectSummary', label: 'Project Summary', visible: true, minWidth: 100, width: 200 },
-  { key: 'clientId', label: 'Client ID', visible: true, minWidth: 80, width: 110 },
-  { key: 'uniqueId', label: 'Unique ID', visible: true, minWidth: 80, width: 130 },
-  { key: 'publishedAt', label: 'Published At', visible: true, minWidth: 90, width: 120 },
-  { key: 'dataUpload', label: 'Data Upload', visible: true, minWidth: 80, width: 110 },
-  { key: 'validation', label: 'Validation', visible: true, minWidth: 100, width: 160 },
-  { key: 'suppression', label: 'Suppression', visible: true, minWidth: 80, width: 110 },
-  { key: 'status', label: 'Status', visible: true, minWidth: 80, width: 120 },
-  { key: 'actions', label: 'Actions', visible: true, minWidth: 120, width: 160 },
-  { key: 'publish', label: 'Publish', visible: true, minWidth: 70, width: 90 },
+  { key: 'projectName', label: 'Project Name', visible: true, minWidth: 120, width: 200 },
+  { key: 'batchName', label: 'Batch Name', visible: true, minWidth: 100, width: 130 },
+  { key: 'projectSummary', label: 'Project Summary', visible: true, minWidth: 120, width: 200 },
+  { key: 'clientId', label: 'Client ID', visible: true, minWidth: 90, width: 110 },
+  { key: 'uniqueId', label: 'Unique ID', visible: true, minWidth: 100, width: 130 },
+  { key: 'publishedAt', label: 'Published At', visible: true, minWidth: 100, width: 120 },
+  { key: 'dataUpload', label: 'Data Upload', visible: true, minWidth: 100, width: 110 },
+  { key: 'validatedData', label: 'Validated Data', visible: true, minWidth: 120, width: 180 },
+  { key: 'icpCheck', label: 'ICP Check', visible: true, minWidth: 100, width: 130 },
+  { key: 'suppression', label: 'Suppression', visible: true, minWidth: 100, width: 110 },
+  { key: 'status', label: 'Status', visible: true, minWidth: 90, width: 120 },
+  { key: 'actions', label: 'Actions', visible: true, minWidth: 130, width: 160 },
+  { key: 'publish', label: 'Publish', visible: true, minWidth: 80, width: 100 },
 ];
 
 const DBImport = () => {
