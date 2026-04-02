@@ -459,11 +459,8 @@ const EmailDraft = () => {
                               <tr key={batch.id} className="border-b border-border/30 last:border-0">
                                       <td className="py-3 text-muted-foreground text-xs">{bIdx + 1}</td>
                                       <td className="py-3 font-medium">{batch.batchName}</td>
-                                      <td className="py-3"><Badge variant="default">{batch.validCount.toLocaleString()}</Badge></td>
-                                      <td className="py-3"><Badge variant="secondary">{batch.catchAllCount.toLocaleString()}</Badge></td>
                                       <td className="py-3">{batch.totalCount.toLocaleString()}</td>
                                       <td className="py-3">{renderCountryCell(batch.countries)}</td>
-                                      <td className="py-3 text-muted-foreground">{format(batch.publishedAt, 'MMM dd, yyyy')}</td>
                                       <td className="py-3">
                                         <Button variant={batch.template ? 'secondary' : 'outline'} size="sm" onClick={() => openTemplateDialog(project.id, batch.id)}>
                                           <Upload className="h-3 w-3 mr-1" /> {batch.template ? 'Edit Template' : 'Upload Template'}
