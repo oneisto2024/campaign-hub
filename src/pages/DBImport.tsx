@@ -98,18 +98,19 @@ const MOCK_IMPORT_PROJECTS: ImportProject[] = [
 
 const DB_IMPORT_COLUMNS: ColumnDef[] = [
   { key: 'sNo', label: 'S.No', visible: true, minWidth: 50, width: 60 },
-  { key: 'projectName', label: 'Project Name', visible: true, minWidth: 100, width: 200 },
-  { key: 'batchName', label: 'Batch Name', visible: true, minWidth: 80, width: 130 },
-  { key: 'projectSummary', label: 'Project Summary', visible: true, minWidth: 100, width: 200 },
-  { key: 'clientId', label: 'Client ID', visible: true, minWidth: 80, width: 110 },
-  { key: 'uniqueId', label: 'Unique ID', visible: true, minWidth: 80, width: 130 },
-  { key: 'publishedAt', label: 'Published At', visible: true, minWidth: 90, width: 120 },
-  { key: 'dataUpload', label: 'Data Upload', visible: true, minWidth: 80, width: 110 },
-  { key: 'validation', label: 'Validation', visible: true, minWidth: 100, width: 160 },
-  { key: 'suppression', label: 'Suppression', visible: true, minWidth: 80, width: 110 },
-  { key: 'status', label: 'Status', visible: true, minWidth: 80, width: 120 },
-  { key: 'actions', label: 'Actions', visible: true, minWidth: 120, width: 160 },
-  { key: 'publish', label: 'Publish', visible: true, minWidth: 70, width: 90 },
+  { key: 'projectName', label: 'Project Name', visible: true, minWidth: 120, width: 200 },
+  { key: 'batchName', label: 'Batch Name', visible: true, minWidth: 100, width: 130 },
+  { key: 'projectSummary', label: 'Project Summary', visible: true, minWidth: 120, width: 200 },
+  { key: 'clientId', label: 'Client ID', visible: true, minWidth: 90, width: 110 },
+  { key: 'uniqueId', label: 'Unique ID', visible: true, minWidth: 100, width: 130 },
+  { key: 'publishedAt', label: 'Published At', visible: true, minWidth: 100, width: 120 },
+  { key: 'dataUpload', label: 'Data Upload', visible: true, minWidth: 100, width: 110 },
+  { key: 'validatedData', label: 'Validated Data', visible: true, minWidth: 120, width: 180 },
+  { key: 'icpCheck', label: 'ICP Check', visible: true, minWidth: 100, width: 130 },
+  { key: 'suppression', label: 'Suppression', visible: true, minWidth: 100, width: 110 },
+  { key: 'status', label: 'Status', visible: true, minWidth: 90, width: 120 },
+  { key: 'actions', label: 'Actions', visible: true, minWidth: 130, width: 160 },
+  { key: 'publish', label: 'Publish', visible: true, minWidth: 80, width: 100 },
 ];
 
 const DBImport = () => {
@@ -140,12 +141,8 @@ const DBImport = () => {
   });
   const [statusColumnValues, setStatusColumnValues] = useState<string[]>([]);
 
-  // Validation API selection
-  const [selectedValidationApi, setSelectedValidationApi] = useState('');
-  const validationApiAccounts = [
-    { id: '1', name: 'ZeroBounce Primary', isLive: true },
-    { id: '2', name: 'NeverBounce Backup', isLive: false },
-  ];
+  // ICP Check state
+  const [icpRunStatus, setIcpRunStatus] = useState<Record<string, 'pending' | 'in-progress' | 'completed' | 'error'>>({});
 
   // Step 3: Suppression
   const [suppressionType, setSuppressionType] = useState<'domain' | 'email' | ''>('');
@@ -366,23 +363,38 @@ const DBImport = () => {
   };
 
   const completeStep3 = () => {
-    if (!suppressionFile) {
-      toast({ title: 'Please upload a suppression file', variant: 'destructive' });
-      return;
-    }
-    if (!suppressionType) {
-      toast({ title: 'Select suppression type', variant: 'destructive' });
-      return;
-    }
-    if (!suppressionFieldMapping) {
-      toast({ title: 'Map the suppression field', variant: 'destructive' });
-      return;
+    // Suppression is optional - if file is uploaded, validate mappings
+    if (suppressionFile) {
+      if (!suppressionType) {
+        toast({ title: 'Select suppression type', variant: 'destructive' });
+        return;
+      }
+      if (!suppressionFieldMapping) {
+        toast({ title: 'Map the suppression field', variant: 'destructive' });
+        return;
+      }
     }
     setProjects(projects.map(p =>
-      p.id === activeProject?.id ? { ...p, suppressionDone: true, importStatus: 'suppressed' as const } : p
+      p.id === activeProject?.id ? { ...p, suppressionDone: !!suppressionFile, importStatus: 'suppressed' as const } : p
     ));
     setActiveProject(null);
     toast({ title: 'Import steps completed! Ready to publish.' });
+  };
+
+  const triggerIcpCheck = (project: ImportProject) => {
+    if (!project.dataUploaded) {
+      toast({ title: 'Upload data first before running ICP check', variant: 'destructive' });
+      return;
+    }
+    setIcpRunStatus(prev => ({ ...prev, [project.id]: 'in-progress' }));
+    setTimeout(() => {
+      setIcpRunStatus(prev => ({ ...prev, [project.id]: 'error' }));
+      toast({
+        title: 'ICP Check API Error',
+        description: 'Could not connect to ICP validation service. Please reach out to admin to configure the ICP Validation API under Email Config.',
+        variant: 'destructive',
+      });
+    }, 2000);
   };
 
   const handlePublish = () => {
@@ -542,26 +554,62 @@ const DBImport = () => {
                 case 'dataUpload': return project.dataUploaded
                   ? <Badge variant="default"><Check className="h-3 w-3 mr-1" />Done</Badge>
                   : <Badge variant="outline">Pending</Badge>;
-                case 'validation': return (
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8"
-                      onClick={() => triggerValidation(project)}
-                      disabled={!project.dataUploaded || project.validationRunStatus === 'in-progress' || project.validationRunStatus === 'completed'}
-                      title="Run validation">
-                      {getValidationRunIcon(project.validationRunStatus)}
-                    </Button>
-                    {project.validationRunStatus === 'completed' && project.validationStats && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8"
-                        onClick={() => setStatsProject(project)} title="View validation stats">
-                        <BarChart3 className="h-4 w-4" />
+                case 'validatedData': {
+                  if (isValidationDone === 'yes' && project.validationDone && project.validationStats) {
+                    return (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Badge variant="default" className="text-[10px]">V:{project.validationStats.valid}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">CA:{project.validationStats.catchAll}</Badge>
+                        <Badge variant="outline" className="text-[10px]">Inv:{project.validationStats.invalid}</Badge>
+                        <Badge variant="outline" className="text-[10px]">Unk:{project.validationStats.unknown}</Badge>
+                      </div>
+                    );
+                  }
+                  if (project.validationRunStatus === 'completed' && project.validationStats) {
+                    return (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Badge variant="default" className="text-[10px]">V:{project.validationStats.valid}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">CA:{project.validationStats.catchAll}</Badge>
+                        <Badge variant="outline" className="text-[10px]">Inv:{project.validationStats.invalid}</Badge>
+                        <Badge variant="outline" className="text-[10px]">Unk:{project.validationStats.unknown}</Badge>
+                        <Button variant="ghost" size="icon" className="h-6 w-6"
+                          onClick={() => setStatsProject(project)} title="View details">
+                          <BarChart3 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  }
+                  // Not done yet - show 0 with run button
+                  return (
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-muted-foreground font-mono">0</span>
+                      <Button variant="ghost" size="icon" className="h-7 w-7"
+                        onClick={() => triggerValidation(project)}
+                        disabled={!project.dataUploaded || project.validationRunStatus === 'in-progress'}
+                        title="Run validation">
+                        {getValidationRunIcon(project.validationRunStatus)}
                       </Button>
-                    )}
-                    {getValidationRunBadge(project.validationRunStatus)}
-                  </div>
-                );
+                      {getValidationRunBadge(project.validationRunStatus)}
+                    </div>
+                  );
+                }
+                case 'icpCheck': {
+                  const status = icpRunStatus[project.id] || 'pending';
+                  return (
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7"
+                        onClick={() => triggerIcpCheck(project)}
+                        disabled={!project.dataUploaded || status === 'in-progress' || status === 'completed'}
+                        title="Run ICP check">
+                        {status === 'in-progress' ? <Loader2 className="h-4 w-4 animate-spin" /> : status === 'completed' ? <Check className="h-4 w-4" /> : status === 'error' ? <X className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                      </Button>
+                      {getValidationRunBadge(status)}
+                    </div>
+                  );
+                }
                 case 'suppression': return project.suppressionDone
                   ? <Badge variant="default"><Check className="h-3 w-3 mr-1" />Done</Badge>
-                  : <Badge variant="outline">Pending</Badge>;
+                  : <Badge variant="outline">Optional</Badge>;
                 case 'status': return getStatusBadge(project);
                 case 'actions': return (
                   <div className="flex items-center gap-1">
@@ -573,19 +621,22 @@ const DBImport = () => {
                     </Button>
                   </div>
                 );
-                case 'publish': return (
-                  <div className="flex flex-col items-center gap-1">
-                    <Button variant="ghost" size="icon"
-                      className={`h-8 w-8 ${project.importStatus === 'ready' ? 'text-muted-foreground' : project.importStatus === 'suppressed' ? 'text-primary hover:text-primary' : 'text-muted-foreground'}`}
-                      onClick={() => { if (project.importStatus === 'suppressed') setPublishConfirm(project); }}
-                      disabled={project.importStatus !== 'suppressed'} title="Publish to Email Data">
-                      <Send className="h-4 w-4" />
-                    </Button>
-                    <Badge variant={project.importStatus === 'ready' ? 'default' : 'outline'} className="text-[10px] px-1.5 py-0">
-                      {getPublishStatus(project)}
-                    </Badge>
-                  </div>
-                );
+                case 'publish': {
+                  const canPublish = project.importStatus === 'suppressed' || (project.importStatus === 'validated' && project.dataUploaded);
+                  return (
+                    <div className="flex flex-col items-center gap-1">
+                      <Button variant="ghost" size="icon"
+                        className={`h-8 w-8 ${project.importStatus === 'ready' ? 'text-muted-foreground' : canPublish ? 'text-primary hover:text-primary' : 'text-muted-foreground'}`}
+                        onClick={() => { if (canPublish) setPublishConfirm(project); }}
+                        disabled={!canPublish && project.importStatus !== 'ready'} title="Publish to Email Data">
+                        <Send className="h-4 w-4" />
+                      </Button>
+                      <Badge variant={project.importStatus === 'ready' ? 'default' : 'outline'} className="text-[10px] px-1.5 py-0">
+                        {getPublishStatus(project)}
+                      </Badge>
+                    </div>
+                  );
+                }
                 default: return '-';
               }
             }}
@@ -802,29 +853,8 @@ const DBImport = () => {
                       {isValidationDone === 'no' && (
                         <div className="space-y-4 pl-4">
                           <p className="text-sm text-muted-foreground">
-                            Data will be accepted without validation. Automatic validation will run after upload.
+                            Data will be accepted without validation. Automatic validation will run after upload using the currently active API account configured by the admin under Email Config.
                           </p>
-                          <div className="space-y-2 border-t pt-4">
-                            <Label className="font-medium">Select Validation API Account</Label>
-                            <p className="text-xs text-muted-foreground">Choose which API key to use for automatic validation.</p>
-                            <Select value={selectedValidationApi} onValueChange={setSelectedValidationApi}>
-                              <SelectTrigger className="w-72">
-                                <SelectValue placeholder="Select API account" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {validationApiAccounts.map(api => (
-                                  <SelectItem key={api.id} value={api.id}>
-                                    {api.name} {api.isLive ? '(Live — Default)' : '(On Hold)'}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {!selectedValidationApi && (
-                              <p className="text-xs text-chart-4">
-                                The default live API account will be used if none is selected.
-                              </p>
-                            )}
-                          </div>
                         </div>
                       )}
                     </div>
@@ -862,8 +892,8 @@ const DBImport = () => {
               <div className="space-y-6">
                 {/* Upload suppression file */}
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-base">Upload Suppression File</h4>
-                  <p className="text-sm text-muted-foreground">Upload a separate file containing your suppression list.</p>
+                  <h4 className="font-semibold text-base">Upload Suppression File <span className="text-sm font-normal text-muted-foreground">(Optional)</span></h4>
+                  <p className="text-sm text-muted-foreground">Upload a separate file containing your suppression list. You can skip this step if not needed.</p>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                     <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground mb-2">Upload CSV or Excel file</p>

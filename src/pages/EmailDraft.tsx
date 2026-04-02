@@ -417,15 +417,7 @@ const EmailDraft = () => {
                           <span className="font-mono font-semibold text-sm">{clientId}</span>
                           <Badge variant="secondary">{clientProjects.length} project{clientProjects.length > 1 ? 's' : ''}</Badge>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-muted-foreground">Valid:</span>
-                            <Badge variant="default">{totals.valid.toLocaleString()}</Badge>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-muted-foreground">Catch-All:</span>
-                            <Badge variant="secondary">{totals.catchAll.toLocaleString()}</Badge>
-                          </div>
+                        <div className="flex items-center gap-4 text-sm flex-wrap">
                           <div className="flex items-center gap-1.5">
                             <span className="text-muted-foreground">Total:</span>
                             <Badge variant="outline">{totals.total.toLocaleString()}</Badge>
@@ -455,11 +447,8 @@ const EmailDraft = () => {
                                   <tr className="border-b border-border/50">
                                     <th className="text-left py-2 font-medium text-muted-foreground w-8">S.No</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Batch</th>
-                                    <th className="text-left py-2 font-medium text-muted-foreground">Valid</th>
-                                     <th className="text-left py-2 font-medium text-muted-foreground">Catch-All</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Total</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Country</th>
-                                    <th className="text-left py-2 font-medium text-muted-foreground">Published</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Template</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Status</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Funnels</th>
@@ -470,11 +459,8 @@ const EmailDraft = () => {
                               <tr key={batch.id} className="border-b border-border/30 last:border-0">
                                       <td className="py-3 text-muted-foreground text-xs">{bIdx + 1}</td>
                                       <td className="py-3 font-medium">{batch.batchName}</td>
-                                      <td className="py-3"><Badge variant="default">{batch.validCount.toLocaleString()}</Badge></td>
-                                      <td className="py-3"><Badge variant="secondary">{batch.catchAllCount.toLocaleString()}</Badge></td>
                                       <td className="py-3">{batch.totalCount.toLocaleString()}</td>
                                       <td className="py-3">{renderCountryCell(batch.countries)}</td>
-                                      <td className="py-3 text-muted-foreground">{format(batch.publishedAt, 'MMM dd, yyyy')}</td>
                                       <td className="py-3">
                                         <Button variant={batch.template ? 'secondary' : 'outline'} size="sm" onClick={() => openTemplateDialog(project.id, batch.id)}>
                                           <Upload className="h-3 w-3 mr-1" /> {batch.template ? 'Edit Template' : 'Upload Template'}

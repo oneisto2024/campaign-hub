@@ -15,6 +15,7 @@ import CreateCampaign from "./pages/CreateCampaign";
 import AllProjects from "./pages/AllProjects";
 import DBImport from "./pages/DBImport";
 import EmailValidationAPI from "./pages/EmailValidationAPI";
+import ICPValidationAPI from "./pages/ICPValidationAPI";
 import UploadEmailSettings from "./pages/UploadEmailSettings";
 import WebhookConfig from "./pages/WebhookConfig";
 import GDPRCompliance from "./pages/GDPRCompliance";
@@ -92,6 +93,7 @@ const App = () => (
               {/* Email Config */}
               <Route path="/email-config/upload-settings" element={<UploadEmailSettings />} />
               <Route path="/email-config/validation-api" element={<EmailValidationAPI />} />
+              <Route path="/email-config/icp-validation-api" element={<ICPValidationAPI />} />
               <Route path="/email-config/webhook-api" element={<WebhookConfig />} />
               
               {/* GDPR */}
