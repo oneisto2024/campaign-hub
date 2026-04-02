@@ -15,6 +15,7 @@ import CreateCampaign from "./pages/CreateCampaign";
 import AllProjects from "./pages/AllProjects";
 import DBImport from "./pages/DBImport";
 import EmailValidationAPI from "./pages/EmailValidationAPI";
+import ICPValidationAPI from "./pages/ICPValidationAPI";
 import UploadEmailSettings from "./pages/UploadEmailSettings";
 import WebhookConfig from "./pages/WebhookConfig";
 import GDPRCompliance from "./pages/GDPRCompliance";
