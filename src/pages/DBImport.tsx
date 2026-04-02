@@ -621,19 +621,22 @@ const DBImport = () => {
                     </Button>
                   </div>
                 );
-                case 'publish': return (
-                  <div className="flex flex-col items-center gap-1">
-                    <Button variant="ghost" size="icon"
-                      className={`h-8 w-8 ${project.importStatus === 'ready' ? 'text-muted-foreground' : project.importStatus === 'suppressed' ? 'text-primary hover:text-primary' : 'text-muted-foreground'}`}
-                      onClick={() => { if (project.importStatus === 'suppressed') setPublishConfirm(project); }}
-                      disabled={project.importStatus !== 'suppressed'} title="Publish to Email Data">
-                      <Send className="h-4 w-4" />
-                    </Button>
-                    <Badge variant={project.importStatus === 'ready' ? 'default' : 'outline'} className="text-[10px] px-1.5 py-0">
-                      {getPublishStatus(project)}
-                    </Badge>
-                  </div>
-                );
+                case 'publish': {
+                  const canPublish = project.importStatus === 'suppressed' || (project.importStatus === 'validated' && project.dataUploaded);
+                  return (
+                    <div className="flex flex-col items-center gap-1">
+                      <Button variant="ghost" size="icon"
+                        className={`h-8 w-8 ${project.importStatus === 'ready' ? 'text-muted-foreground' : canPublish ? 'text-primary hover:text-primary' : 'text-muted-foreground'}`}
+                        onClick={() => { if (canPublish) setPublishConfirm(project); }}
+                        disabled={!canPublish && project.importStatus !== 'ready'} title="Publish to Email Data">
+                        <Send className="h-4 w-4" />
+                      </Button>
+                      <Badge variant={project.importStatus === 'ready' ? 'default' : 'outline'} className="text-[10px] px-1.5 py-0">
+                        {getPublishStatus(project)}
+                      </Badge>
+                    </div>
+                  );
+                }
                 default: return '-';
               }
             }}
