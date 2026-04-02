@@ -853,29 +853,8 @@ const DBImport = () => {
                       {isValidationDone === 'no' && (
                         <div className="space-y-4 pl-4">
                           <p className="text-sm text-muted-foreground">
-                            Data will be accepted without validation. Automatic validation will run after upload.
+                            Data will be accepted without validation. Automatic validation will run after upload using the currently active API account configured by the admin under Email Config.
                           </p>
-                          <div className="space-y-2 border-t pt-4">
-                            <Label className="font-medium">Select Validation API Account</Label>
-                            <p className="text-xs text-muted-foreground">Choose which API key to use for automatic validation.</p>
-                            <Select value={selectedValidationApi} onValueChange={setSelectedValidationApi}>
-                              <SelectTrigger className="w-72">
-                                <SelectValue placeholder="Select API account" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {validationApiAccounts.map(api => (
-                                  <SelectItem key={api.id} value={api.id}>
-                                    {api.name} {api.isLive ? '(Live — Default)' : '(On Hold)'}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {!selectedValidationApi && (
-                              <p className="text-xs text-chart-4">
-                                The default live API account will be used if none is selected.
-                              </p>
-                            )}
-                          </div>
                         </div>
                       )}
                     </div>
