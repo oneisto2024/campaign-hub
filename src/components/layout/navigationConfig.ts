@@ -23,6 +23,7 @@ import {
   Building2,
   Tags,
   ShieldBan,
+  ClipboardCheck,
   type LucideIcon,
 } from 'lucide-react';
 
