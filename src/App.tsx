@@ -93,6 +93,7 @@ const App = () => (
               {/* Email Config */}
               <Route path="/email-config/upload-settings" element={<UploadEmailSettings />} />
               <Route path="/email-config/validation-api" element={<EmailValidationAPI />} />
+              <Route path="/email-config/icp-validation-api" element={<ICPValidationAPI />} />
               <Route path="/email-config/webhook-api" element={<WebhookConfig />} />
               
               {/* GDPR */}
