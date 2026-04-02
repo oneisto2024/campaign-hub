@@ -363,23 +363,38 @@ const DBImport = () => {
   };
 
   const completeStep3 = () => {
-    if (!suppressionFile) {
-      toast({ title: 'Please upload a suppression file', variant: 'destructive' });
-      return;
-    }
-    if (!suppressionType) {
-      toast({ title: 'Select suppression type', variant: 'destructive' });
-      return;
-    }
-    if (!suppressionFieldMapping) {
-      toast({ title: 'Map the suppression field', variant: 'destructive' });
-      return;
+    // Suppression is optional - if file is uploaded, validate mappings
+    if (suppressionFile) {
+      if (!suppressionType) {
+        toast({ title: 'Select suppression type', variant: 'destructive' });
+        return;
+      }
+      if (!suppressionFieldMapping) {
+        toast({ title: 'Map the suppression field', variant: 'destructive' });
+        return;
+      }
     }
     setProjects(projects.map(p =>
-      p.id === activeProject?.id ? { ...p, suppressionDone: true, importStatus: 'suppressed' as const } : p
+      p.id === activeProject?.id ? { ...p, suppressionDone: !!suppressionFile, importStatus: 'suppressed' as const } : p
     ));
     setActiveProject(null);
     toast({ title: 'Import steps completed! Ready to publish.' });
+  };
+
+  const triggerIcpCheck = (project: ImportProject) => {
+    if (!project.dataUploaded) {
+      toast({ title: 'Upload data first before running ICP check', variant: 'destructive' });
+      return;
+    }
+    setIcpRunStatus(prev => ({ ...prev, [project.id]: 'in-progress' }));
+    setTimeout(() => {
+      setIcpRunStatus(prev => ({ ...prev, [project.id]: 'error' }));
+      toast({
+        title: 'ICP Check API Error',
+        description: 'Could not connect to ICP validation service. Please reach out to admin to configure the ICP Validation API under Email Config.',
+        variant: 'destructive',
+      });
+    }, 2000);
   };
 
   const handlePublish = () => {
