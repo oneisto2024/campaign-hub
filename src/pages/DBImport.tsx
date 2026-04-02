@@ -554,26 +554,62 @@ const DBImport = () => {
                 case 'dataUpload': return project.dataUploaded
                   ? <Badge variant="default"><Check className="h-3 w-3 mr-1" />Done</Badge>
                   : <Badge variant="outline">Pending</Badge>;
-                case 'validation': return (
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8"
-                      onClick={() => triggerValidation(project)}
-                      disabled={!project.dataUploaded || project.validationRunStatus === 'in-progress' || project.validationRunStatus === 'completed'}
-                      title="Run validation">
-                      {getValidationRunIcon(project.validationRunStatus)}
-                    </Button>
-                    {project.validationRunStatus === 'completed' && project.validationStats && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8"
-                        onClick={() => setStatsProject(project)} title="View validation stats">
-                        <BarChart3 className="h-4 w-4" />
+                case 'validatedData': {
+                  if (isValidationDone === 'yes' && project.validationDone && project.validationStats) {
+                    return (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Badge variant="default" className="text-[10px]">V:{project.validationStats.valid}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">CA:{project.validationStats.catchAll}</Badge>
+                        <Badge variant="outline" className="text-[10px]">Inv:{project.validationStats.invalid}</Badge>
+                        <Badge variant="outline" className="text-[10px]">Unk:{project.validationStats.unknown}</Badge>
+                      </div>
+                    );
+                  }
+                  if (project.validationRunStatus === 'completed' && project.validationStats) {
+                    return (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Badge variant="default" className="text-[10px]">V:{project.validationStats.valid}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">CA:{project.validationStats.catchAll}</Badge>
+                        <Badge variant="outline" className="text-[10px]">Inv:{project.validationStats.invalid}</Badge>
+                        <Badge variant="outline" className="text-[10px]">Unk:{project.validationStats.unknown}</Badge>
+                        <Button variant="ghost" size="icon" className="h-6 w-6"
+                          onClick={() => setStatsProject(project)} title="View details">
+                          <BarChart3 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  }
+                  // Not done yet - show 0 with run button
+                  return (
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-muted-foreground font-mono">0</span>
+                      <Button variant="ghost" size="icon" className="h-7 w-7"
+                        onClick={() => triggerValidation(project)}
+                        disabled={!project.dataUploaded || project.validationRunStatus === 'in-progress'}
+                        title="Run validation">
+                        {getValidationRunIcon(project.validationRunStatus)}
                       </Button>
-                    )}
-                    {getValidationRunBadge(project.validationRunStatus)}
-                  </div>
-                );
+                      {getValidationRunBadge(project.validationRunStatus)}
+                    </div>
+                  );
+                }
+                case 'icpCheck': {
+                  const status = icpRunStatus[project.id] || 'pending';
+                  return (
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7"
+                        onClick={() => triggerIcpCheck(project)}
+                        disabled={!project.dataUploaded || status === 'in-progress' || status === 'completed'}
+                        title="Run ICP check">
+                        {status === 'in-progress' ? <Loader2 className="h-4 w-4 animate-spin" /> : status === 'completed' ? <Check className="h-4 w-4" /> : status === 'error' ? <X className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                      </Button>
+                      {getValidationRunBadge(status)}
+                    </div>
+                  );
+                }
                 case 'suppression': return project.suppressionDone
                   ? <Badge variant="default"><Check className="h-3 w-3 mr-1" />Done</Badge>
-                  : <Badge variant="outline">Pending</Badge>;
+                  : <Badge variant="outline">Optional</Badge>;
                 case 'status': return getStatusBadge(project);
                 case 'actions': return (
                   <div className="flex items-center gap-1">
