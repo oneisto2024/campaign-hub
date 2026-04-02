@@ -141,12 +141,8 @@ const DBImport = () => {
   });
   const [statusColumnValues, setStatusColumnValues] = useState<string[]>([]);
 
-  // Validation API selection
-  const [selectedValidationApi, setSelectedValidationApi] = useState('');
-  const validationApiAccounts = [
-    { id: '1', name: 'ZeroBounce Primary', isLive: true },
-    { id: '2', name: 'NeverBounce Backup', isLive: false },
-  ];
+  // ICP Check state
+  const [icpRunStatus, setIcpRunStatus] = useState<Record<string, 'pending' | 'in-progress' | 'completed' | 'error'>>({});
 
   // Step 3: Suppression
   const [suppressionType, setSuppressionType] = useState<'domain' | 'email' | ''>('');
