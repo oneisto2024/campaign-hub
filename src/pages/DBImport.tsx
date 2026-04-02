@@ -892,8 +892,8 @@ const DBImport = () => {
               <div className="space-y-6">
                 {/* Upload suppression file */}
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-base">Upload Suppression File</h4>
-                  <p className="text-sm text-muted-foreground">Upload a separate file containing your suppression list.</p>
+                  <h4 className="font-semibold text-base">Upload Suppression File <span className="text-sm font-normal text-muted-foreground">(Optional)</span></h4>
+                  <p className="text-sm text-muted-foreground">Upload a separate file containing your suppression list. You can skip this step if not needed.</p>
                   <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                     <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground mb-2">Upload CSV or Excel file</p>
