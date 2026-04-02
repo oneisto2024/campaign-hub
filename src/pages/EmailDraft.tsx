@@ -417,15 +417,7 @@ const EmailDraft = () => {
                           <span className="font-mono font-semibold text-sm">{clientId}</span>
                           <Badge variant="secondary">{clientProjects.length} project{clientProjects.length > 1 ? 's' : ''}</Badge>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-muted-foreground">Valid:</span>
-                            <Badge variant="default">{totals.valid.toLocaleString()}</Badge>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-muted-foreground">Catch-All:</span>
-                            <Badge variant="secondary">{totals.catchAll.toLocaleString()}</Badge>
-                          </div>
+                        <div className="flex items-center gap-4 text-sm flex-wrap">
                           <div className="flex items-center gap-1.5">
                             <span className="text-muted-foreground">Total:</span>
                             <Badge variant="outline">{totals.total.toLocaleString()}</Badge>
