@@ -23,6 +23,16 @@ import HolidayBanner from '@/components/HolidayBanner';
 
 const PROJECT_TYPES = ['MQL Campaign', 'Click Campaign', 'ABM Campaign', 'Webinar', 'Appointment Setting', 'API Project', 'Double Touch'];
 
+const SLUG_TO_TYPE: Record<string, string> = {
+  'mql-campaign': 'MQL Campaign',
+  'click-campaign': 'Click Campaign',
+  'abm-campaign': 'ABM Campaign',
+  'webinar': 'Webinar',
+  'appointment-setting': 'Appointment Setting',
+  'api-project': 'API Project',
+  'double-touch': 'Double Touch',
+};
+
 interface EmailDetail {
   email: string;
   timestamp: Date;
@@ -273,8 +283,7 @@ const EmailSending = () => {
   // Derive activeTypeTab from URL param
   const activeTypeTab = useMemo(() => {
     if (!type) return 'all';
-    const decoded = type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    return PROJECT_TYPES.includes(decoded) ? decoded : 'all';
+    return SLUG_TO_TYPE[type] || 'all';
   }, [type]);
 
   // When tab changes, navigate to the correct URL
@@ -480,88 +489,64 @@ const EmailSending = () => {
                       </div>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="bg-muted/20">
-                        {projs.map((project) => {
-                          globalSno++;
-                          return (
-                          <div key={project.id} className="border-t border-border/50 px-3 sm:px-6 py-4">
-                            <div className="flex flex-wrap items-start sm:items-center justify-between mb-3 gap-2">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs font-mono text-muted-foreground w-6">{globalSno}.</span>
-                                <span className="font-medium text-sm">{project.projectName}</span>
-                                <span className="font-mono text-xs text-muted-foreground">{project.uniqueId}</span>
-                                <Badge variant="outline" className="text-xs">{project.projectType}</Badge>
-                                {renderCountryCell(project.countries)}
-                              </div>
-                              <Button size="sm" variant="outline" onClick={() => { setDetailProject(project); setDetailTab('summary'); }}>
-                                <Eye className="h-3 w-3 mr-1" /> Details
-                              </Button>
-                            </div>
-
-                            {/* Section 1: Main Stats */}
-                            <div className="mb-3">
-                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Campaign Stats</p>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-                                <StatBox label="Sent" value={project.sent} icon={Mail} />
-                                <StatBox label="Delivered" value={project.delivered} icon={Activity} />
-                                <StatBox label="Open Rate" value={`${openRate(project)}%`} icon={Eye} trend="up"
-                                  onClick={() => setDrillDown({ project, type: 'opens' })} />
-                                <StatBox label="Click Rate" value={`${clickRate(project)}%`} icon={MousePointerClick} trend="up"
-                                  onClick={() => setDrillDown({ project, type: 'clicks' })} />
-                                <StatBox label="Bounced" value={project.bounced + project.softBounced} icon={ArrowDownRight} trend="down"
-                                  onClick={() => setDrillDown({ project, type: 'bounces' })} />
-                                <StatBox label="Unsubs" value={project.unsubscribed} icon={Users}
-                                  onClick={() => setDrillDown({ project, type: 'unsubs' })} />
-                                <StatBox label="Replied" value={project.replied} icon={Reply}
-                                  onClick={() => setDrillDown({ project, type: 'replies' })} />
-                                <StatBox label={project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels'} value={project.funnelCount} icon={TrendingUp} />
-                              </div>
-                            </div>
-
-                            {/* Section 2: Funnel Stats with clickable detail */}
-                            <div>
-                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1">
-                                <GitBranch className="h-3 w-3" /> {project.projectType === 'Webinar' ? 'Follow-up Performance' : 'Funnel Performance'}
-                              </p>
-                              {project.hasFunnel ? (
-                                <div className="space-y-1.5">
-                                  {project.funnelStats.map((step, i) => (
-                                    <div key={i} className="flex items-center gap-3 rounded border border-border/50 bg-background px-3 py-2 text-xs">
-                                      <span className="font-medium text-muted-foreground w-48 truncate">{step.stepName}</span>
-                                      <span
-                                        className="cursor-pointer hover:text-chart-4 transition-colors"
-                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'sent' })}
-                                      >Sent: <strong>{step.sent.toLocaleString()}</strong></span>
-                                      <span
-                                        className="cursor-pointer hover:text-chart-2 transition-colors"
-                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'opens' })}
-                                      >Opens: <strong>{step.opens.toLocaleString()}</strong></span>
-                                      <span
-                                        className="cursor-pointer hover:text-chart-1 transition-colors"
-                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'clicks' })}
-                                      >Clicks: <strong>{step.clicks.toLocaleString()}</strong></span>
-                                      <span
-                                        className="cursor-pointer hover:text-destructive transition-colors"
-                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'bounced' })}
-                                      >Bounced: <strong>{step.bounced.toLocaleString()}</strong></span>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 text-[10px] ml-auto"
-                                        onClick={() => setFunnelDrillDown({ project, step, statKey: 'opens' })}
-                                      >
-                                        <Eye className="h-3 w-3 mr-1" /> Detail
-                                      </Button>
+                      <div className="bg-muted/20 overflow-x-auto">
+                        <table className="w-full text-sm min-w-[900px]">
+                          <thead>
+                            <tr className="border-t border-b border-border/50 bg-muted/30">
+                              <th className="text-left p-3 font-medium text-muted-foreground text-xs w-8">#</th>
+                              <th className="text-left p-3 font-medium text-muted-foreground text-xs">Project</th>
+                              <th className="text-left p-3 font-medium text-muted-foreground text-xs">Type</th>
+                              <th className="text-left p-3 font-medium text-muted-foreground text-xs">Country</th>
+                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">Sent</th>
+                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">Delivered</th>
+                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">Open %</th>
+                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">Click %</th>
+                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">Bounced</th>
+                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">Unsubs</th>
+                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">Replied</th>
+                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">{projs.some(p => p.projectType === 'Webinar') ? 'Follow-ups' : 'Funnels'}</th>
+                              <th className="text-center p-3 font-medium text-muted-foreground text-xs">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {projs.map((project) => {
+                              globalSno++;
+                              const funnelLabel = project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels';
+                              return (
+                                <tr key={project.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                                  <td className="p-3 text-muted-foreground text-xs">{globalSno}</td>
+                                  <td className="p-3">
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-sm">{project.projectName}</span>
+                                      <span className="text-xs text-muted-foreground font-mono">{project.uniqueId}</span>
                                     </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-xs text-muted-foreground italic">{project.projectType === 'Webinar' ? 'No follow-up was created for this project' : 'No funnel was created for this project'}</p>
-                              )}
-                            </div>
-                          </div>
-                          );
-                        })}
+                                  </td>
+                                  <td className="p-3"><Badge variant="outline" className="text-xs whitespace-nowrap">{project.projectType}</Badge></td>
+                                  <td className="p-3">{renderCountryCell(project.countries)}</td>
+                                  <td className="p-3 text-right font-medium">{project.sent.toLocaleString()}</td>
+                                  <td className="p-3 text-right">{project.delivered.toLocaleString()}</td>
+                                  <td className="p-3 text-right">
+                                    <span className="text-chart-2 font-medium">{openRate(project)}%</span>
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    <span className="text-chart-1 font-medium">{clickRate(project)}%</span>
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    <span className="text-destructive">{(project.bounced + project.softBounced).toLocaleString()}</span>
+                                  </td>
+                                  <td className="p-3 text-right">{project.unsubscribed}</td>
+                                  <td className="p-3 text-right">{project.replied}</td>
+                                  <td className="p-3 text-right">{project.funnelCount}</td>
+                                  <td className="p-3 text-center">
+                                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setDetailProject(project); setDetailTab('summary'); }}>
+                                      <Eye className="h-3 w-3 mr-1" /> Details
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
