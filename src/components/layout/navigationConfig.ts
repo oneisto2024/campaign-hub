@@ -78,8 +78,9 @@ export const moduleGroups: NavGroup[] = [
       { title: 'Webinar', href: '/campaign/webinar', icon: Megaphone },
       { title: 'Click Campaign', href: '/campaign/click-campaign', icon: Megaphone },
       { title: 'MQL Campaign', href: '/campaign/mql-campaign', icon: Megaphone },
-      { title: 'Lead Generation', href: '/campaign/lead-generation', icon: Target },
-      { title: 'Funnel Set', href: '/campaign/funnel-set', icon: Target },
+      { title: 'Appointment Setting', href: '/campaign/appointment-setting', icon: Target },
+      { title: 'API Project', href: '/campaign/api-project', icon: Target },
+      { title: 'Double Touch', href: '/campaign/double-touch', icon: Target },
     ],
   },
   {

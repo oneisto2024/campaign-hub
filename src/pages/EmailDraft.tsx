@@ -39,7 +39,7 @@ const MOCK_EMAIL_ACCOUNTS = [
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const PROJECT_TYPES = [
-'ABM Campaign', 'Webinar', 'Click Campaign', 'MQL Campaign', 'Lead Generation', 'Funnel Set'];
+'MQL Campaign', 'Click Campaign', 'ABM Campaign', 'Webinar', 'Appointment Setting', 'API Project', 'Double Touch'];
 
 
 interface FunnelStep {
@@ -93,7 +93,7 @@ interface EmailDraftProject {
 // Mock data
 const MOCK_PROJECTS: EmailDraftProject[] = [
 {
-  id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
+  id: '1', clientId: 'ACME001', projectName: 'Q1 Appointment Setting Campaign', uniqueId: 'PRJ-2026-001',
   batches: [
   { id: 'b1', batchName: 'Batch 1', validCount: 3200, catchAllCount: 800, totalCount: 4000, publishedAt: new Date('2026-01-15'), funnels: [], status: 'active', countries: ['United States', 'Canada'] },
   { id: 'b2', batchName: 'Batch 2', validCount: 1500, catchAllCount: 300, totalCount: 1800, publishedAt: new Date('2026-01-20'), funnels: [], status: 'draft', countries: ['Germany'] }]
@@ -451,7 +451,7 @@ const EmailDraft = () => {
                                     <th className="text-left py-2 font-medium text-muted-foreground">Country</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Template</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Status</th>
-                                    <th className="text-left py-2 font-medium text-muted-foreground">Funnels</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">{project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels'}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -482,9 +482,9 @@ const EmailDraft = () => {
                                       </td>
                                       <td className="py-3">
                                         <div className="flex items-center gap-2">
-                                          <Badge variant="outline">{batch.funnels.length} funnel{batch.funnels.length !== 1 ? 's' : ''}</Badge>
+                                          <Badge variant="outline">{batch.funnels.length} {project.projectType === 'Webinar' ? (batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up') : (batch.funnels.length !== 1 ? 'funnels' : 'funnel')}</Badge>
                                           <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })}>
-                                            <Plus className="h-3 w-3 mr-1" /> Funnel
+                                            <Plus className="h-3 w-3 mr-1" /> {project.projectType === 'Webinar' ? 'Follow-up' : 'Funnel'}
                                           </Button>
                                         </div>
                                       </td>
@@ -498,7 +498,7 @@ const EmailDraft = () => {
                           batch.funnels.length > 0 &&
                           <div key={`funnels-${batch.id}`} className="mt-3 space-y-2">
                                     <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                      {batch.batchName} — Funnels
+                                      {batch.batchName} — {project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels'}
                                     </h5>
                                     <div className="flex flex-wrap gap-3">
                                       {batch.funnels.map((funnel) =>
@@ -623,7 +623,7 @@ const EmailDraft = () => {
       <Dialog open={!!funnelDialog} onOpenChange={(open) => !open && setFunnelDialog(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New Funnel</DialogTitle>
+            <DialogTitle>Create New {funnelDialog ? (() => { const p = projects.find(p => p.id === funnelDialog.projectId); return p?.projectType === 'Webinar' ? 'Follow-up' : 'Funnel'; })() : 'Funnel'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

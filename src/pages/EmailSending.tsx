@@ -21,7 +21,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import HolidayBanner from '@/components/HolidayBanner';
 
-const PROJECT_TYPES = ['ABM Campaign', 'Webinar', 'Click Campaign', 'MQL Campaign', 'Lead Generation', 'Funnel Set'];
+const PROJECT_TYPES = ['MQL Campaign', 'Click Campaign', 'ABM Campaign', 'Webinar', 'Appointment Setting', 'API Project', 'Double Touch'];
 
 interface EmailDetail {
   email: string;
@@ -78,8 +78,8 @@ interface SendingProject {
 
 const MOCK_DATA: SendingProject[] = [
   {
-    id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
-    projectType: 'Lead Generation', sentAt: new Date('2026-01-20'), sentFromEmail: 'outreach@acme-campaigns.com', countries: ['United States', 'Canada'], totalDB: 4000, sent: 3800, delivered: 3650,
+    id: '1', clientId: 'ACME001', projectName: 'Q1 Appointment Setting Campaign', uniqueId: 'PRJ-2026-001',
+    projectType: 'Appointment Setting', sentAt: new Date('2026-01-20'), sentFromEmail: 'outreach@acme-campaigns.com', countries: ['United States', 'Canada'], totalDB: 4000, sent: 3800, delivered: 3650,
     opens: 1825, uniqueOpens: 1200, clicks: 456, uniqueClicks: 320, bounced: 80, softBounced: 70,
     unsubscribed: 23, complained: 2, replied: 45, funnelCount: 2, hasFunnel: true,
     funnelStats: [
@@ -213,6 +213,7 @@ const statIconColors: Record<string, string> = {
   Unsubs: 'bg-destructive/10 text-destructive/70',
   Replied: 'bg-chart-3/15 text-chart-3',
   Funnels: 'bg-chart-5/15 text-chart-5',
+  'Follow-ups': 'bg-chart-5/15 text-chart-5',
   'Total DB': 'bg-muted text-muted-foreground',
   'Unique Opens': 'bg-chart-2/10 text-chart-2',
   'Total Opens': 'bg-chart-2/10 text-chart-2',
@@ -513,14 +514,14 @@ const EmailSending = () => {
                                   onClick={() => setDrillDown({ project, type: 'unsubs' })} />
                                 <StatBox label="Replied" value={project.replied} icon={Reply}
                                   onClick={() => setDrillDown({ project, type: 'replies' })} />
-                                <StatBox label="Funnels" value={project.funnelCount} icon={TrendingUp} />
+                                <StatBox label={project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels'} value={project.funnelCount} icon={TrendingUp} />
                               </div>
                             </div>
 
                             {/* Section 2: Funnel Stats with clickable detail */}
                             <div>
                               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1">
-                                <GitBranch className="h-3 w-3" /> Funnel Performance
+                                <GitBranch className="h-3 w-3" /> {project.projectType === 'Webinar' ? 'Follow-up Performance' : 'Funnel Performance'}
                               </p>
                               {project.hasFunnel ? (
                                 <div className="space-y-1.5">
@@ -555,7 +556,7 @@ const EmailSending = () => {
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-xs text-muted-foreground italic">No funnel was created for this project</p>
+                                <p className="text-xs text-muted-foreground italic">{project.projectType === 'Webinar' ? 'No follow-up was created for this project' : 'No funnel was created for this project'}</p>
                               )}
                             </div>
                           </div>
@@ -901,7 +902,7 @@ const EmailSending = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">Client ID</span><span className="font-mono">{detailProject.clientId}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Sent On</span><span>{detailProject.sentAt.toLocaleDateString()}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Total Database</span><span>{detailProject.totalDB.toLocaleString()}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Funnel Steps</span><span>{detailProject.funnelCount}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">{detailProject.projectType === 'Webinar' ? 'Follow-up Steps' : 'Funnel Steps'}</span><span>{detailProject.funnelCount}</span></div>
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Sent From</span>
                           <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{detailProject.sentFromEmail}</span>
