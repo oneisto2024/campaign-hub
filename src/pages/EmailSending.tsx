@@ -521,7 +521,7 @@ const EmailSending = () => {
                             {/* Section 2: Funnel Stats with clickable detail */}
                             <div>
                               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1">
-                                <GitBranch className="h-3 w-3" /> Funnel Performance
+                                <GitBranch className="h-3 w-3" /> {project.projectType === 'Webinar' ? 'Follow-up Performance' : 'Funnel Performance'}
                               </p>
                               {project.hasFunnel ? (
                                 <div className="space-y-1.5">
