@@ -482,9 +482,9 @@ const EmailDraft = () => {
                                       </td>
                                       <td className="py-3">
                                         <div className="flex items-center gap-2">
-                                          <Badge variant="outline">{batch.funnels.length} funnel{batch.funnels.length !== 1 ? 's' : ''}</Badge>
+                                          <Badge variant="outline">{batch.funnels.length} {project.projectType === 'Webinar' ? (batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up') : (batch.funnels.length !== 1 ? 'funnels' : 'funnel')}</Badge>
                                           <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })}>
-                                            <Plus className="h-3 w-3 mr-1" /> Funnel
+                                            <Plus className="h-3 w-3 mr-1" /> {project.projectType === 'Webinar' ? 'Follow-up' : 'Funnel'}
                                           </Button>
                                         </div>
                                       </td>
