@@ -498,7 +498,7 @@ const EmailDraft = () => {
                           batch.funnels.length > 0 &&
                           <div key={`funnels-${batch.id}`} className="mt-3 space-y-2">
                                     <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                      {batch.batchName} — Funnels
+                                      {batch.batchName} — {project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels'}
                                     </h5>
                                     <div className="flex flex-wrap gap-3">
                                       {batch.funnels.map((funnel) =>
