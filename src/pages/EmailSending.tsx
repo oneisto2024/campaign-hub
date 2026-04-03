@@ -902,7 +902,7 @@ const EmailSending = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">Client ID</span><span className="font-mono">{detailProject.clientId}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Sent On</span><span>{detailProject.sentAt.toLocaleDateString()}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Total Database</span><span>{detailProject.totalDB.toLocaleString()}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Funnel Steps</span><span>{detailProject.funnelCount}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">{detailProject.projectType === 'Webinar' ? 'Follow-up Steps' : 'Funnel Steps'}</span><span>{detailProject.funnelCount}</span></div>
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Sent From</span>
                           <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{detailProject.sentFromEmail}</span>
