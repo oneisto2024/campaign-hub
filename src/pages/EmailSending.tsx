@@ -23,6 +23,16 @@ import HolidayBanner from '@/components/HolidayBanner';
 
 const PROJECT_TYPES = ['MQL Campaign', 'Click Campaign', 'ABM Campaign', 'Webinar', 'Appointment Setting', 'API Project', 'Double Touch'];
 
+const SLUG_TO_TYPE: Record<string, string> = {
+  'mql-campaign': 'MQL Campaign',
+  'click-campaign': 'Click Campaign',
+  'abm-campaign': 'ABM Campaign',
+  'webinar': 'Webinar',
+  'appointment-setting': 'Appointment Setting',
+  'api-project': 'API Project',
+  'double-touch': 'Double Touch',
+};
+
 interface EmailDetail {
   email: string;
   timestamp: Date;
