@@ -451,7 +451,7 @@ const EmailDraft = () => {
                                     <th className="text-left py-2 font-medium text-muted-foreground">Country</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Template</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Status</th>
-                                    <th className="text-left py-2 font-medium text-muted-foreground">Funnels</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">{project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels'}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
