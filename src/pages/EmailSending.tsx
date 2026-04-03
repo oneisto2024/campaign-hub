@@ -213,6 +213,7 @@ const statIconColors: Record<string, string> = {
   Unsubs: 'bg-destructive/10 text-destructive/70',
   Replied: 'bg-chart-3/15 text-chart-3',
   Funnels: 'bg-chart-5/15 text-chart-5',
+  'Follow-ups': 'bg-chart-5/15 text-chart-5',
   'Total DB': 'bg-muted text-muted-foreground',
   'Unique Opens': 'bg-chart-2/10 text-chart-2',
   'Total Opens': 'bg-chart-2/10 text-chart-2',
