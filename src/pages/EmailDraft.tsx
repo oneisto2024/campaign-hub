@@ -39,7 +39,7 @@ const MOCK_EMAIL_ACCOUNTS = [
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const PROJECT_TYPES = [
-'ABM Campaign', 'Webinar', 'Click Campaign', 'MQL Campaign', 'Lead Generation', 'Funnel Set'];
+'MQL Campaign', 'Click Campaign', 'ABM Campaign', 'Webinar', 'Appointment Setting', 'API Project', 'Double Touch'];
 
 
 interface FunnelStep {

@@ -21,7 +21,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import HolidayBanner from '@/components/HolidayBanner';
 
-const PROJECT_TYPES = ['ABM Campaign', 'Webinar', 'Click Campaign', 'MQL Campaign', 'Lead Generation', 'Funnel Set'];
+const PROJECT_TYPES = ['MQL Campaign', 'Click Campaign', 'ABM Campaign', 'Webinar', 'Appointment Setting', 'API Project', 'Double Touch'];
 
 interface EmailDetail {
   email: string;
