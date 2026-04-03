@@ -556,7 +556,7 @@ const EmailSending = () => {
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-xs text-muted-foreground italic">No funnel was created for this project</p>
+                                <p className="text-xs text-muted-foreground italic">{project.projectType === 'Webinar' ? 'No follow-up was created for this project' : 'No funnel was created for this project'}</p>
                               )}
                             </div>
                           </div>
