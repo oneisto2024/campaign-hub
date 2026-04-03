@@ -93,7 +93,7 @@ interface EmailDraftProject {
 // Mock data
 const MOCK_PROJECTS: EmailDraftProject[] = [
 {
-  id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
+  id: '1', clientId: 'ACME001', projectName: 'Q1 Appointment Setting Campaign', uniqueId: 'PRJ-2026-001',
   batches: [
   { id: 'b1', batchName: 'Batch 1', validCount: 3200, catchAllCount: 800, totalCount: 4000, publishedAt: new Date('2026-01-15'), funnels: [], status: 'active', countries: ['United States', 'Canada'] },
   { id: 'b2', batchName: 'Batch 2', validCount: 1500, catchAllCount: 300, totalCount: 1800, publishedAt: new Date('2026-01-20'), funnels: [], status: 'draft', countries: ['Germany'] }]
