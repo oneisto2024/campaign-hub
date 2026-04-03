@@ -78,7 +78,7 @@ interface SendingProject {
 
 const MOCK_DATA: SendingProject[] = [
   {
-    id: '1', clientId: 'ACME001', projectName: 'Q1 Lead Generation Campaign', uniqueId: 'PRJ-2026-001',
+    id: '1', clientId: 'ACME001', projectName: 'Q1 Appointment Setting Campaign', uniqueId: 'PRJ-2026-001',
     projectType: 'Appointment Setting', sentAt: new Date('2026-01-20'), sentFromEmail: 'outreach@acme-campaigns.com', countries: ['United States', 'Canada'], totalDB: 4000, sent: 3800, delivered: 3650,
     opens: 1825, uniqueOpens: 1200, clicks: 456, uniqueClicks: 320, bounced: 80, softBounced: 70,
     unsubscribed: 23, complained: 2, replied: 45, funnelCount: 2, hasFunnel: true,
