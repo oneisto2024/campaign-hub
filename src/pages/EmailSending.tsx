@@ -514,7 +514,7 @@ const EmailSending = () => {
                                   onClick={() => setDrillDown({ project, type: 'unsubs' })} />
                                 <StatBox label="Replied" value={project.replied} icon={Reply}
                                   onClick={() => setDrillDown({ project, type: 'replies' })} />
-                                <StatBox label="Funnels" value={project.funnelCount} icon={TrendingUp} />
+                                <StatBox label={project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels'} value={project.funnelCount} icon={TrendingUp} />
                               </div>
                             </div>
 
