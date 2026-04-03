@@ -283,8 +283,7 @@ const EmailSending = () => {
   // Derive activeTypeTab from URL param
   const activeTypeTab = useMemo(() => {
     if (!type) return 'all';
-    const decoded = type.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    return PROJECT_TYPES.includes(decoded) ? decoded : 'all';
+    return SLUG_TO_TYPE[type] || 'all';
   }, [type]);
 
   // When tab changes, navigate to the correct URL
