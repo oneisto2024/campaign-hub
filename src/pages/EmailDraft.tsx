@@ -265,7 +265,7 @@ const EmailDraft = () => {
     setProjects((prev) => prev.map((p) =>
     p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: b.funnels.filter((f) => f.id !== funnelId) } : b) } : p
     ));
-    toast({ title: 'Funnel deleted' });
+    toast({ title: 'Follow-up deleted' });
   };
 
   const addFunnelStep = (projectId: string, batchId: string, funnelId: string) => {
