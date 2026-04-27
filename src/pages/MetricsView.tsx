@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, Download, Monitor, BarChart3 } from 'lucide-react';
+import { useResizableColumns, ColumnDef } from '@/hooks/useResizableColumns';
+import { ResizableDataTable, ManageColumnsButton } from '@/components/ResizableDataTable';
 
 interface ProjectMetric {
   id: string;
@@ -24,7 +25,6 @@ interface ProjectMetric {
 }
 
 const MOCK_METRICS: ProjectMetric[] = [
-  // Three batches under same project name "Q1 Appointment Setting Campaign" — for consolidation
   { id: '1a', clientId: 'ACME001', projectName: 'Q1 Appointment Setting Campaign', uniqueId: 'PRJ-2026-001-B1', projectType: 'Appointment Setting', totalDB: 4000, sent: 3800, delivered: 3650, opens: 1825, clicks: 456, bounced: 80, unsubscribed: 23, replied: 45 },
   { id: '1b', clientId: 'ACME001', projectName: 'Q1 Appointment Setting Campaign', uniqueId: 'PRJ-2026-001-B2', projectType: 'Appointment Setting', totalDB: 2000, sent: 1950, delivered: 1880, opens: 940, clicks: 220, bounced: 40, unsubscribed: 11, replied: 18 },
   { id: '1c', clientId: 'ACME001', projectName: 'Q1 Appointment Setting Campaign', uniqueId: 'PRJ-2026-001-B3', projectType: 'Appointment Setting', totalDB: 1500, sent: 1450, delivered: 1400, opens: 700, clicks: 180, bounced: 30, unsubscribed: 7, replied: 12 },
@@ -56,10 +56,32 @@ interface MetricsTableProps {
   Icon: typeof Monitor;
 }
 
+const buildColumns = (mode: 'consolidated' | 'per-project'): ColumnDef[] => [
+  { key: 'sno', label: '#', visible: true, minWidth: 50, width: 60 },
+  { key: 'clientId', label: 'Client ID', visible: true, minWidth: 90, width: 110 },
+  { key: 'projectName', label: 'Project', visible: true, minWidth: 160, width: 240 },
+  mode === 'per-project'
+    ? { key: 'uniqueId', label: 'Unique ID', visible: true, minWidth: 120, width: 170 }
+    : { key: 'batches', label: 'Batches', visible: true, minWidth: 80, width: 90 },
+  { key: 'projectType', label: 'Type', visible: true, minWidth: 110, width: 150 },
+  { key: 'totalDB', label: 'Total DB', visible: true, minWidth: 80, width: 100 },
+  { key: 'sent', label: 'Sent', visible: true, minWidth: 70, width: 90 },
+  { key: 'delivered', label: 'Delivered', visible: true, minWidth: 80, width: 100 },
+  { key: 'opens', label: 'Opens (%)', visible: true, minWidth: 100, width: 130 },
+  { key: 'clicks', label: 'Clicks (%)', visible: true, minWidth: 100, width: 130 },
+  { key: 'bounced', label: 'Bounced', visible: true, minWidth: 80, width: 100 },
+  { key: 'unsubscribed', label: 'Unsubs', visible: true, minWidth: 70, width: 90 },
+  { key: 'replied', label: 'Replied', visible: true, minWidth: 70, width: 90 },
+];
+
 const MetricsTable = ({ mode, title, subtitle, Icon }: MetricsTableProps) => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterClient, setFilterClient] = useState('all');
+
+  const { columns, visibleColumns, toggleColumn, handleResizeStart } = useResizableColumns(
+    useMemo(() => buildColumns(mode), [mode])
+  );
 
   const allClients = useMemo(() => [...new Set(MOCK_METRICS.map(m => m.clientId))], []);
 
@@ -77,7 +99,6 @@ const MetricsTable = ({ mode, title, subtitle, Icon }: MetricsTableProps) => {
 
   const rows = useMemo(() => {
     if (mode === 'per-project') return filteredRaw;
-    // Consolidated: group by clientId + projectName
     const grouped = new Map<string, ProjectMetric & { batchCount: number }>();
     for (const m of filteredRaw) {
       const key = `${m.clientId}__${m.projectName}`;
@@ -98,6 +119,8 @@ const MetricsTable = ({ mode, title, subtitle, Icon }: MetricsTableProps) => {
     }
     return Array.from(grouped.values());
   }, [filteredRaw, mode]);
+
+  const indexedRows = useMemo(() => rows.map((r: any, i) => ({ ...r, _idx: i + 1 })), [rows]);
 
   const handleExport = () => {
     const data = rows.map((r: any, i) => ({
@@ -120,6 +143,28 @@ const MetricsTable = ({ mode, title, subtitle, Icon }: MetricsTableProps) => {
     exportCsv(data, mode);
   };
 
+  const renderCell = (r: any, key: string) => {
+    switch (key) {
+      case 'sno': return <span className="text-muted-foreground">{r._idx}</span>;
+      case 'clientId': return <span className="font-mono text-xs">{r.clientId}</span>;
+      case 'projectName': return <span className="font-medium text-sm" title={r.projectName}>{r.projectName}</span>;
+      case 'uniqueId': return <span className="font-mono text-xs text-muted-foreground" title={r.uniqueId}>{r.uniqueId}</span>;
+      case 'batches': return <Badge variant="secondary" className="text-xs">{r.batchCount}</Badge>;
+      case 'projectType': return <Badge variant="outline" className="text-xs" title={r.projectType}>{r.projectType}</Badge>;
+      case 'totalDB': return <span className="text-sm">{r.totalDB.toLocaleString()}</span>;
+      case 'sent': return <span className="text-sm">{r.sent.toLocaleString()}</span>;
+      case 'delivered': return <span className="text-sm">{r.delivered.toLocaleString()}</span>;
+      case 'opens':
+        return <span className="text-sm">{r.opens.toLocaleString()} <span className="text-muted-foreground text-xs">({pct(r.opens, r.delivered)})</span></span>;
+      case 'clicks':
+        return <span className="text-sm">{r.clicks.toLocaleString()} <span className="text-muted-foreground text-xs">({pct(r.clicks, r.delivered)})</span></span>;
+      case 'bounced': return <span className="text-sm">{r.bounced.toLocaleString()}</span>;
+      case 'unsubscribed': return <span className="text-sm">{r.unsubscribed.toLocaleString()}</span>;
+      case 'replied': return <span className="text-sm">{r.replied.toLocaleString()}</span>;
+      default: return null;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -129,9 +174,12 @@ const MetricsTable = ({ mode, title, subtitle, Icon }: MetricsTableProps) => {
           </h1>
           <p className="text-sm font-light text-muted-foreground">{subtitle}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          <Download className="h-4 w-4 mr-2" /> Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <ManageColumnsButton columns={columns} toggleColumn={toggleColumn} />
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" /> Export CSV
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4">
@@ -163,67 +211,18 @@ const MetricsTable = ({ mode, title, subtitle, Icon }: MetricsTableProps) => {
 
         <div className="text-xs text-muted-foreground mb-2">
           Showing {rows.length} {mode === 'consolidated' ? 'project group' : 'project'}{rows.length !== 1 ? 's' : ''}
+          <span className="ml-2 italic">· Drag column edges to resize</span>
         </div>
 
-        <div className="overflow-x-auto rounded-md border">
-          <Table className="min-w-[1300px]">
-            <TableHeader>
-              <TableRow className="bg-muted/40">
-                <TableHead className="w-12">#</TableHead>
-                <TableHead className="w-[110px]">Client ID</TableHead>
-                <TableHead className="min-w-[220px]">Project</TableHead>
-                {mode === 'per-project' ? (
-                  <TableHead className="w-[160px]">Unique ID</TableHead>
-                ) : (
-                  <TableHead className="w-[90px] text-center">Batches</TableHead>
-                )}
-                <TableHead className="w-[150px]">Type</TableHead>
-                <TableHead className="w-[100px] text-right">Total DB</TableHead>
-                <TableHead className="w-[90px] text-right">Sent</TableHead>
-                <TableHead className="w-[100px] text-right">Delivered</TableHead>
-                <TableHead className="w-[110px] text-right">Opens (%)</TableHead>
-                <TableHead className="w-[110px] text-right">Clicks (%)</TableHead>
-                <TableHead className="w-[90px] text-right">Bounced</TableHead>
-                <TableHead className="w-[80px] text-right">Unsubs</TableHead>
-                <TableHead className="w-[80px] text-right">Replied</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
-                    No projects found
-                  </TableCell>
-                </TableRow>
-              ) : rows.map((r: any, idx) => (
-                <TableRow key={r.id || `${r.clientId}-${r.projectName}`}>
-                  <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.clientId}</TableCell>
-                  <TableCell className="font-medium text-sm">{r.projectName}</TableCell>
-                  {mode === 'per-project' ? (
-                    <TableCell className="font-mono text-xs text-muted-foreground">{r.uniqueId}</TableCell>
-                  ) : (
-                    <TableCell className="text-center">
-                      <Badge variant="secondary" className="text-xs">{r.batchCount}</Badge>
-                    </TableCell>
-                  )}
-                  <TableCell><Badge variant="outline" className="text-xs">{r.projectType}</Badge></TableCell>
-                  <TableCell className="text-right text-sm">{r.totalDB.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-sm">{r.sent.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-sm">{r.delivered.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-sm">
-                    {r.opens.toLocaleString()} <span className="text-muted-foreground text-xs">({pct(r.opens, r.delivered)})</span>
-                  </TableCell>
-                  <TableCell className="text-right text-sm">
-                    {r.clicks.toLocaleString()} <span className="text-muted-foreground text-xs">({pct(r.clicks, r.delivered)})</span>
-                  </TableCell>
-                  <TableCell className="text-right text-sm">{r.bounced.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-sm">{r.unsubscribed.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-sm">{r.replied.toLocaleString()}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="rounded-md border">
+          <ResizableDataTable
+            visibleColumns={visibleColumns}
+            handleResizeStart={handleResizeStart}
+            data={indexedRows}
+            renderCell={renderCell}
+            rowKey={(r) => r.id || `${r.clientId}-${r.projectName}`}
+            emptyMessage="No projects found"
+          />
         </div>
       </Card>
     </div>
