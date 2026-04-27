@@ -209,7 +209,7 @@ const EmailDraft = () => {
     ));
     setNewFunnelName('');
     setFunnelDialog(null);
-    toast({ title: `Funnel "${newFunnel.name}" created` });
+    toast({ title: `Follow-up "${newFunnel.name}" created` });
   };
 
   const toggleFunnelStatus = (projectId: string, batchId: string, funnelId: string) => {
