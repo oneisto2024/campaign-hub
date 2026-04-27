@@ -31,6 +31,8 @@ import ListManagement from "./pages/ListManagement";
 import MergeTags from "./pages/MergeTags";
 import SeedList from "./pages/SeedList";
 import EmailSearch from "./pages/EmailSearch";
+import LeadDiscovery from "./pages/LeadDiscovery";
+import { ConsoleView, Analytics } from "./pages/MetricsView";
 import NotFound from "./pages/NotFound";
 import { SeedListProvider } from "./contexts/SeedListContext";
 
