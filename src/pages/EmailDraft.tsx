@@ -677,11 +677,11 @@ const EmailDraft = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Funnel Steps Editor Dialog */}
+      {/* Follow-up Steps Editor Dialog */}
       <Dialog open={!!editingFunnel} onOpenChange={(open) => !open && setEditingFunnel(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Funnel Steps — {currentFunnel?.name}</DialogTitle>
+            <DialogTitle>Follow-up Steps — {currentFunnel?.name}</DialogTitle>
           </DialogHeader>
           {currentFunnel && editingFunnel &&
           <ScrollArea className="h-[65vh] pr-4">
