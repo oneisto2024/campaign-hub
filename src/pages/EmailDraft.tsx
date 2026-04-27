@@ -431,20 +431,28 @@ const EmailDraft = () => {
                         {clientProjects.map((project) =>
                       <div key={project.id} className="border-t border-border/50">
                             <div className="px-6 py-3 flex items-center justify-between shadow-none bg-purple-50">
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 flex-wrap">
                                 <span className="font-medium text-sm">{project.projectName}</span>
+                                {project.projectType ? (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs cursor-pointer bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15"
+                                    onClick={() => {setPublishDialog({ projectId: project.id });setSelectedProjectType(project.projectType || '');}}
+                                    title="Click to change project type"
+                                  >
+                                    {project.projectType}
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs text-muted-foreground border-dashed"
+                                  >
+                                    Drafting in Progress
+                                  </Badge>
+                                )}
                                 <span className="font-mono text-xs text-muted-foreground">{project.uniqueId}</span>
                               </div>
-                              {project.projectType ? (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-xs cursor-pointer bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15"
-                                  onClick={() => {setPublishDialog({ projectId: project.id });setSelectedProjectType(project.projectType || '');}}
-                                  title="Click to change project type"
-                                >
-                                  {project.projectType}
-                                </Badge>
-                              ) : (
+                              {!project.projectType && (
                                 <Button size="sm" onClick={() => {setPublishDialog({ projectId: project.id });setSelectedProjectType('');}}>
                                   <Send className="h-3 w-3 mr-1" /> Publish
                                 </Button>
