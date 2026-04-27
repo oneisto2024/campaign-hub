@@ -72,13 +72,13 @@ const App = () => (
               <Route path="/campaign/:type" element={<EmailSending />} />
               
               {/* Lead Discovery */}
-              <Route path="/lead-discovery" element={<PlaceholderPage />} />
+              <Route path="/lead-discovery" element={<LeadDiscovery />} />
               
               {/* Console View */}
-              <Route path="/console-view/all-console" element={<PlaceholderPage />} />
+              <Route path="/console-view/all-console" element={<ConsoleView />} />
               
               {/* Metrics */}
-              <Route path="/metrics/analytics" element={<PlaceholderPage />} />
+              <Route path="/metrics/analytics" element={<Analytics />} />
               
               {/* Reconnect - removed */}
               
