@@ -486,23 +486,40 @@ const EmailDraft = () => {
                                       </td>
                                       <td className="py-3">
                                         {(() => {
-                                          const s = getBatchStatusBadge(batch.status);
+                                          const statusStyles: Record<string, string> = {
+                                            active: 'border-chart-1 text-chart-1',
+                                            paused: 'border-destructive text-destructive',
+                                            scheduled: 'border-chart-4 text-chart-4',
+                                            draft: 'border-muted-foreground text-muted-foreground',
+                                          };
                                           return (
-                                            <Badge
-                                              variant={s.variant}
-                                              className={`cursor-pointer text-xs ${s.className}`}
-                                              onClick={() => cycleBatchStatus(project.id, batch.id)}
+                                            <Select
+                                              value={batch.status}
+                                              onValueChange={(v: 'active' | 'paused' | 'scheduled' | 'draft') => {
+                                                setProjects((prev) => prev.map((p) =>
+                                                  p.id === project.id ? { ...p, batches: p.batches.map((b) => b.id === batch.id ? { ...b, status: v } : b) } : p
+                                                ));
+                                                toast({ title: `Batch "${batch.batchName}" → ${v.charAt(0).toUpperCase() + v.slice(1)}` });
+                                              }}
                                             >
-                                              {s.label}
-                                            </Badge>
+                                              <SelectTrigger className={`h-8 w-[130px] text-xs font-medium ${statusStyles[batch.status]}`}>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="active">● Active</SelectItem>
+                                                <SelectItem value="paused">● Paused</SelectItem>
+                                                <SelectItem value="scheduled">● Scheduled</SelectItem>
+                                                <SelectItem value="draft">● Draft</SelectItem>
+                                              </SelectContent>
+                                            </Select>
                                           );
                                         })()}
                                       </td>
                                       <td className="py-3">
                                         <div className="flex items-center gap-2">
-                                          <Badge variant="outline">{batch.funnels.length} {project.projectType === 'Webinar' ? (batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up') : (batch.funnels.length !== 1 ? 'funnels' : 'funnel')}</Badge>
+                                          <Badge variant="outline">{batch.funnels.length} {batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up'}</Badge>
                                           <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })}>
-                                            <Plus className="h-3 w-3 mr-1" /> {project.projectType === 'Webinar' ? 'Follow-up' : 'Funnel'}
+                                            <Plus className="h-3 w-3 mr-1" /> Follow-up
                                           </Button>
                                         </div>
                                       </td>
