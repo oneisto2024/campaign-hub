@@ -771,7 +771,7 @@ const EmailDraft = () => {
             </ScrollArea>
           }
           <DialogFooter>
-            <Button onClick={() => {setEditingFunnel(null);toast({ title: 'Funnel steps saved' });}}>Done</Button>
+            <Button onClick={() => {setEditingFunnel(null);toast({ title: 'Follow-up steps saved' });}}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
