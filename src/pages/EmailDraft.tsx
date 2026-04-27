@@ -658,7 +658,7 @@ const EmailDraft = () => {
       <Dialog open={!!funnelDialog} onOpenChange={(open) => !open && setFunnelDialog(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New {funnelDialog ? (() => { const p = projects.find(p => p.id === funnelDialog.projectId); return p?.projectType === 'Webinar' ? 'Follow-up' : 'Funnel'; })() : 'Funnel'}</DialogTitle>
+            <DialogTitle>Create New Follow-up</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
