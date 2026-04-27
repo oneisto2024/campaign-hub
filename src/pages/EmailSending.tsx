@@ -504,7 +504,7 @@ const EmailSending = () => {
                               <th className="text-right p-3 font-medium text-muted-foreground text-xs">Bounced</th>
                               <th className="text-right p-3 font-medium text-muted-foreground text-xs">Unsubs</th>
                               <th className="text-right p-3 font-medium text-muted-foreground text-xs">Replied</th>
-                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">{projs.some(p => p.projectType === 'Webinar') ? 'Follow-ups' : 'Funnels'}</th>
+                              <th className="text-right p-3 font-medium text-muted-foreground text-xs">Follow-ups</th>
                               <th className="text-center p-3 font-medium text-muted-foreground text-xs">Actions</th>
                             </tr>
                           </thead>
