@@ -209,7 +209,7 @@ const EmailDraft = () => {
     ));
     setNewFunnelName('');
     setFunnelDialog(null);
-    toast({ title: `Funnel "${newFunnel.name}" created` });
+    toast({ title: `Follow-up "${newFunnel.name}" created` });
   };
 
   const toggleFunnelStatus = (projectId: string, batchId: string, funnelId: string) => {
@@ -265,7 +265,7 @@ const EmailDraft = () => {
     setProjects((prev) => prev.map((p) =>
     p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: b.funnels.filter((f) => f.id !== funnelId) } : b) } : p
     ));
-    toast({ title: 'Funnel deleted' });
+    toast({ title: 'Follow-up deleted' });
   };
 
   const addFunnelStep = (projectId: string, batchId: string, funnelId: string) => {
@@ -469,7 +469,7 @@ const EmailDraft = () => {
                                     <th className="text-left py-2 font-medium text-muted-foreground">Country</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Template</th>
                                     <th className="text-left py-2 font-medium text-muted-foreground">Status</th>
-                                    <th className="text-left py-2 font-medium text-muted-foreground">{project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels'}</th>
+                                    <th className="text-left py-2 font-medium text-muted-foreground">Follow-ups</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -486,23 +486,40 @@ const EmailDraft = () => {
                                       </td>
                                       <td className="py-3">
                                         {(() => {
-                                          const s = getBatchStatusBadge(batch.status);
+                                          const statusStyles: Record<string, string> = {
+                                            active: 'border-chart-1 text-chart-1',
+                                            paused: 'border-destructive text-destructive',
+                                            scheduled: 'border-chart-4 text-chart-4',
+                                            draft: 'border-muted-foreground text-muted-foreground',
+                                          };
                                           return (
-                                            <Badge
-                                              variant={s.variant}
-                                              className={`cursor-pointer text-xs ${s.className}`}
-                                              onClick={() => cycleBatchStatus(project.id, batch.id)}
+                                            <Select
+                                              value={batch.status}
+                                              onValueChange={(v: 'active' | 'paused' | 'scheduled' | 'draft') => {
+                                                setProjects((prev) => prev.map((p) =>
+                                                  p.id === project.id ? { ...p, batches: p.batches.map((b) => b.id === batch.id ? { ...b, status: v } : b) } : p
+                                                ));
+                                                toast({ title: `Batch "${batch.batchName}" → ${v.charAt(0).toUpperCase() + v.slice(1)}` });
+                                              }}
                                             >
-                                              {s.label}
-                                            </Badge>
+                                              <SelectTrigger className={`h-8 w-[130px] text-xs font-medium ${statusStyles[batch.status]}`}>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="active">● Active</SelectItem>
+                                                <SelectItem value="paused">● Paused</SelectItem>
+                                                <SelectItem value="scheduled">● Scheduled</SelectItem>
+                                                <SelectItem value="draft">● Draft</SelectItem>
+                                              </SelectContent>
+                                            </Select>
                                           );
                                         })()}
                                       </td>
                                       <td className="py-3">
                                         <div className="flex items-center gap-2">
-                                          <Badge variant="outline">{batch.funnels.length} {project.projectType === 'Webinar' ? (batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up') : (batch.funnels.length !== 1 ? 'funnels' : 'funnel')}</Badge>
+                                          <Badge variant="outline">{batch.funnels.length} {batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up'}</Badge>
                                           <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })}>
-                                            <Plus className="h-3 w-3 mr-1" /> {project.projectType === 'Webinar' ? 'Follow-up' : 'Funnel'}
+                                            <Plus className="h-3 w-3 mr-1" /> Follow-up
                                           </Button>
                                         </div>
                                       </td>
@@ -516,7 +533,7 @@ const EmailDraft = () => {
                           batch.funnels.length > 0 &&
                           <div key={`funnels-${batch.id}`} className="mt-3 space-y-2">
                                     <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                      {batch.batchName} — {project.projectType === 'Webinar' ? 'Follow-ups' : 'Funnels'}
+                                      {batch.batchName} — Follow-ups
                                     </h5>
                                     <div className="flex flex-wrap gap-3">
                                       {batch.funnels.map((funnel) =>
@@ -637,34 +654,34 @@ const EmailDraft = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create Funnel Dialog */}
+      {/* Create Follow-up Dialog */}
       <Dialog open={!!funnelDialog} onOpenChange={(open) => !open && setFunnelDialog(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New {funnelDialog ? (() => { const p = projects.find(p => p.id === funnelDialog.projectId); return p?.projectType === 'Webinar' ? 'Follow-up' : 'Funnel'; })() : 'Funnel'}</DialogTitle>
+            <DialogTitle>Create New Follow-up</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Funnel Name *</Label>
+              <Label>Follow-up Name *</Label>
               <Input value={newFunnelName} onChange={(e) => setNewFunnelName(e.target.value)} placeholder="e.g. Open-Follow-ups" />
             </div>
             <p className="text-sm text-muted-foreground">
-              How soon do you want the first message sent when someone enters this funnel?
+              How soon do you want the first message sent when someone enters this follow-up?
               You can configure delays and content for each step after creation.
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFunnelDialog(null)}>Cancel</Button>
-            <Button onClick={() => funnelDialog && createFunnel(funnelDialog.projectId, funnelDialog.batchId)}>Create Funnel</Button>
+            <Button onClick={() => funnelDialog && createFunnel(funnelDialog.projectId, funnelDialog.batchId)}>Create Follow-up</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Funnel Steps Editor Dialog */}
+      {/* Follow-up Steps Editor Dialog */}
       <Dialog open={!!editingFunnel} onOpenChange={(open) => !open && setEditingFunnel(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Funnel Steps — {currentFunnel?.name}</DialogTitle>
+            <DialogTitle>Follow-up Steps — {currentFunnel?.name}</DialogTitle>
           </DialogHeader>
           {currentFunnel && editingFunnel &&
           <ScrollArea className="h-[65vh] pr-4">
@@ -754,7 +771,7 @@ const EmailDraft = () => {
             </ScrollArea>
           }
           <DialogFooter>
-            <Button onClick={() => {setEditingFunnel(null);toast({ title: 'Funnel steps saved' });}}>Done</Button>
+            <Button onClick={() => {setEditingFunnel(null);toast({ title: 'Follow-up steps saved' });}}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
