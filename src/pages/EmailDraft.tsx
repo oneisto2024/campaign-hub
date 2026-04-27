@@ -662,7 +662,7 @@ const EmailDraft = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Funnel Name *</Label>
+              <Label>Follow-up Name *</Label>
               <Input value={newFunnelName} onChange={(e) => setNewFunnelName(e.target.value)} placeholder="e.g. Open-Follow-ups" />
             </div>
             <p className="text-sm text-muted-foreground">
