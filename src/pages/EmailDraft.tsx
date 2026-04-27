@@ -654,7 +654,7 @@ const EmailDraft = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create Funnel Dialog */}
+      {/* Create Follow-up Dialog */}
       <Dialog open={!!funnelDialog} onOpenChange={(open) => !open && setFunnelDialog(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -666,13 +666,13 @@ const EmailDraft = () => {
               <Input value={newFunnelName} onChange={(e) => setNewFunnelName(e.target.value)} placeholder="e.g. Open-Follow-ups" />
             </div>
             <p className="text-sm text-muted-foreground">
-              How soon do you want the first message sent when someone enters this funnel?
+              How soon do you want the first message sent when someone enters this follow-up?
               You can configure delays and content for each step after creation.
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFunnelDialog(null)}>Cancel</Button>
-            <Button onClick={() => funnelDialog && createFunnel(funnelDialog.projectId, funnelDialog.batchId)}>Create Funnel</Button>
+            <Button onClick={() => funnelDialog && createFunnel(funnelDialog.projectId, funnelDialog.batchId)}>Create Follow-up</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
