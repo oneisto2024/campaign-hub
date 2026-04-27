@@ -729,6 +729,9 @@ const EmailSending = () => {
                 <TabsTrigger value="summary"><BarChart3 className="h-3 w-3 mr-1" /> Summary</TabsTrigger>
                 <TabsTrigger value="heatmap"><MousePointerClick className="h-3 w-3 mr-1" /> Heatmap</TabsTrigger>
                 <TabsTrigger value="domains"><Globe className="h-3 w-3 mr-1" /> Domains</TabsTrigger>
+                {detailProject.hasFunnel && (
+                  <TabsTrigger value="followups"><GitBranch className="h-3 w-3 mr-1" /> Follow-ups</TabsTrigger>
+                )}
                 <TabsTrigger value="settings"><Settings className="h-3 w-3 mr-1" /> Settings</TabsTrigger>
               </TabsList>
 
