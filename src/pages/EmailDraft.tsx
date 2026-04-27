@@ -434,11 +434,21 @@ const EmailDraft = () => {
                               <div className="flex items-center gap-3">
                                 <span className="font-medium text-sm">{project.projectName}</span>
                                 <span className="font-mono text-xs text-muted-foreground">{project.uniqueId}</span>
-                                {project.projectType && <Badge variant="outline" className="text-xs">{project.projectType}</Badge>}
                               </div>
-                              <Button size="sm" variant={project.projectType ? 'secondary' : 'default'} onClick={() => {setPublishDialog({ projectId: project.id });setSelectedProjectType(project.projectType || '');}}>
-                                <Send className="h-3 w-3 mr-1" /> {project.projectType ? 'Re-publish' : 'Publish'}
-                              </Button>
+                              {project.projectType ? (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs cursor-pointer bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15"
+                                  onClick={() => {setPublishDialog({ projectId: project.id });setSelectedProjectType(project.projectType || '');}}
+                                  title="Click to change project type"
+                                >
+                                  {project.projectType}
+                                </Badge>
+                              ) : (
+                                <Button size="sm" onClick={() => {setPublishDialog({ projectId: project.id });setSelectedProjectType('');}}>
+                                  <Send className="h-3 w-3 mr-1" /> Publish
+                                </Button>
+                              )}
                             </div>
 
                             <div className="px-6 pb-4 bg-secondary-foreground">
