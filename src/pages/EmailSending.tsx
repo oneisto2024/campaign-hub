@@ -880,6 +880,61 @@ const EmailSending = () => {
                   </Card>
                 </TabsContent>
 
+                {/* Follow-ups (scheduled steps with subject + HTML + schedule) */}
+                {detailProject.hasFunnel && (
+                  <TabsContent value="followups" className="space-y-4 mt-0">
+                    <p className="text-sm text-muted-foreground">
+                      Scheduled follow-up steps for this campaign — subject line, scheduled time, and email content.
+                    </p>
+                    <div className="space-y-3">
+                      {detailProject.funnelStats.map((step, idx) => {
+                        // Synthesize a scheduled time per step (mock): each step staggered by 2 days from sent date
+                        const scheduledAt = new Date(detailProject.sentAt);
+                        scheduledAt.setDate(scheduledAt.getDate() + idx * 2);
+                        const subject = `${detailProject.projectName} — ${step.stepName}`;
+                        const stepHtml = detailProject.templateHtml.replace('<h1>', `<h1>${step.stepName}: `);
+                        return (
+                          <Card key={idx}>
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between gap-3 flex-wrap">
+                                <div className="space-y-1">
+                                  <CardTitle className="text-sm flex items-center gap-2">
+                                    <GitBranch className="h-4 w-4 text-primary" />
+                                    {step.stepName}
+                                  </CardTitle>
+                                  <p className="text-xs text-muted-foreground">
+                                    <span className="font-medium text-foreground">Subject:</span> {subject}
+                                  </p>
+                                </div>
+                                <Badge variant="outline" className="text-xs whitespace-nowrap">
+                                  Scheduled: {scheduledAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {scheduledAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                                <div><span className="text-muted-foreground block">Sent</span><span className="font-semibold text-sm">{step.sent.toLocaleString()}</span></div>
+                                <div><span className="text-muted-foreground block">Opens</span><span className="font-semibold text-sm">{step.opens.toLocaleString()}</span></div>
+                                <div><span className="text-muted-foreground block">Clicks</span><span className="font-semibold text-sm">{step.clicks.toLocaleString()}</span></div>
+                                <div><span className="text-muted-foreground block">Bounced</span><span className="font-semibold text-sm">{step.bounced.toLocaleString()}</span></div>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">HTML Preview</p>
+                                <div className="border rounded-md overflow-hidden">
+                                  <iframe srcDoc={stepHtml} className="w-full h-[220px] border-0 bg-background" title={`${step.stepName} preview`} sandbox="allow-same-origin" />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                      {detailProject.funnelStats.length === 0 && (
+                        <div className="p-8 text-center text-muted-foreground text-sm">No follow-ups scheduled for this campaign.</div>
+                      )}
+                    </div>
+                  </TabsContent>
+                )}
+
                 {/* Settings */}
                 <TabsContent value="settings" className="space-y-4 mt-0">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
