@@ -110,6 +110,9 @@ interface BatchRecord {
   funnels: Funnel[];
   status: 'active' | 'paused' | 'scheduled' | 'draft';
   countries: string[];
+  resendToNonOpeners?: boolean;
+  webinar?: WebinarSequence;
+  seedConfig?: SeedConfig;
 }
 
 interface EmailDraftProject {
@@ -119,6 +122,9 @@ interface EmailDraftProject {
   uniqueId: string;
   projectType?: string;
   batches: BatchRecord[];
+  defaultSeedConfig?: SeedConfig;
+  /** Mock contact pool used to validate "specific emails" in the Webinar final mail */
+  contactEmails?: string[];
 }
 
 // Mock data
