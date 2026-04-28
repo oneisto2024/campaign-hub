@@ -1113,6 +1113,134 @@ const EmailDraft = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Webinar — Intro Mail Dialog */}
+      <Dialog open={!!webinarIntroDialog} onOpenChange={(open) => !open && setWebinarIntroDialog(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Webinar — Intro Mail</DialogTitle>
+            <DialogDescription>The first email sent to your webinar audience.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Subject Line *</Label>
+              <Input value={webinarDraft.introSubject || ''} onChange={(e) => setWebinarDraft({ ...webinarDraft, introSubject: e.target.value })} placeholder="You're invited to our webinar" />
+            </div>
+            <div className="space-y-2">
+              <Label>HTML Content *</Label>
+              <Textarea value={webinarDraft.introHtml || ''} onChange={(e) => setWebinarDraft({ ...webinarDraft, introHtml: e.target.value })} placeholder="Paste your HTML..." className="min-h-[200px] font-mono text-xs" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWebinarIntroDialog(null)}>Cancel</Button>
+            <Button onClick={() => {
+              if (!webinarIntroDialog) return;
+              if (!webinarDraft.introSubject?.trim()) { toast({ title: 'Subject required', variant: 'destructive' }); return; }
+              updateBatchWebinar(webinarIntroDialog.projectId, webinarIntroDialog.batchId, { introSubject: webinarDraft.introSubject, introHtml: webinarDraft.introHtml });
+              toast({ title: 'Intro mail saved' });
+              setWebinarIntroDialog(null);
+            }}>Save Intro</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Webinar — Final Email Dialog */}
+      <Dialog open={!!webinarFinalDialog} onOpenChange={(open) => !open && setWebinarFinalDialog(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Webinar — Final Email</DialogTitle>
+            <DialogDescription>The closing email sent after the follow-up sequence.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Send To</Label>
+              <Select
+                value={webinarDraft.finalAudience || 'all-delivered'}
+                onValueChange={(v: FinalEmailAudience) => setWebinarDraft({ ...webinarDraft, finalAudience: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-delivered">All Delivered</SelectItem>
+                  <SelectItem value="opens">Opens only</SelectItem>
+                  <SelectItem value="clicks">Clicks only</SelectItem>
+                  <SelectItem value="specific">Specific emails</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {webinarDraft.finalAudience === 'specific' && webinarFinalDialog && (
+              <div className="space-y-2 rounded-md border border-border p-3">
+                <Label className="text-xs">Paste emails (comma / newline separated) or upload CSV</Label>
+                <Textarea
+                  value={finalSpecificInput}
+                  onChange={(e) => setFinalSpecificInput(e.target.value)}
+                  placeholder="user1@acme.com, user2@globex.com"
+                  className="min-h-[80px] font-mono text-xs"
+                />
+                <div className="flex items-center gap-2">
+                  <Input type="file" accept=".csv,.txt" className="text-xs" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const text = await file.text();
+                    setFinalSpecificInput((prev) => (prev ? prev + ', ' : '') + text);
+                  }} />
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const { known, unknown } = validateSpecificEmails(webinarFinalDialog.projectId, finalSpecificInput);
+                    setWebinarDraft({ ...webinarDraft, finalSpecificEmails: known, finalUnknownEmails: unknown });
+                    if (unknown.length > 0) {
+                      toast({ title: `${unknown.length} email(s) not in this project`, description: 'They will be dropped from the send.', variant: 'destructive' });
+                    } else {
+                      toast({ title: `${known.length} email(s) matched the project database` });
+                    }
+                  }}>Validate</Button>
+                </div>
+                {(webinarDraft.finalSpecificEmails?.length || webinarDraft.finalUnknownEmails?.length) ? (
+                  <div className="text-[11px] space-y-1">
+                    {!!webinarDraft.finalSpecificEmails?.length && (
+                      <p className="text-chart-1">✓ {webinarDraft.finalSpecificEmails.length} matched and will be sent</p>
+                    )}
+                    {!!webinarDraft.finalUnknownEmails?.length && (
+                      <div className="text-destructive">
+                        ⚠ {webinarDraft.finalUnknownEmails.length} not in project DB (dropped):
+                        <div className="font-mono pl-2">{webinarDraft.finalUnknownEmails.slice(0, 5).join(', ')}{webinarDraft.finalUnknownEmails.length > 5 ? '…' : ''}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Subject Line *</Label>
+              <Input value={webinarDraft.finalSubject || ''} onChange={(e) => setWebinarDraft({ ...webinarDraft, finalSubject: e.target.value })} placeholder="Thanks for joining — here's what's next" />
+            </div>
+            <div className="space-y-2">
+              <Label>HTML Content *</Label>
+              <Textarea value={webinarDraft.finalHtml || ''} onChange={(e) => setWebinarDraft({ ...webinarDraft, finalHtml: e.target.value })} placeholder="Paste your HTML..." className="min-h-[180px] font-mono text-xs" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWebinarFinalDialog(null)}>Cancel</Button>
+            <Button onClick={() => {
+              if (!webinarFinalDialog) return;
+              if (!webinarDraft.finalSubject?.trim()) { toast({ title: 'Subject required', variant: 'destructive' }); return; }
+              if (webinarDraft.finalAudience === 'specific' && !(webinarDraft.finalSpecificEmails?.length)) {
+                toast({ title: 'Validate at least one specific email first', variant: 'destructive' });
+                return;
+              }
+              updateBatchWebinar(webinarFinalDialog.projectId, webinarFinalDialog.batchId, {
+                finalAudience: webinarDraft.finalAudience,
+                finalSubject: webinarDraft.finalSubject,
+                finalHtml: webinarDraft.finalHtml,
+                finalSpecificEmails: webinarDraft.finalSpecificEmails,
+                finalUnknownEmails: webinarDraft.finalUnknownEmails,
+              });
+              toast({ title: 'Final email saved' });
+              setWebinarFinalDialog(null);
+            }}>Save Final Email</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Publish Dialog - Project Type Selection */}
       <Dialog open={!!publishDialog} onOpenChange={(open) => !open && setPublishDialog(null)}>
         <DialogContent className="max-w-md">
