@@ -229,6 +229,9 @@ const EmailDraft = () => {
     const batch = project?.batches.find((b) => b.id === batchId);
     if (batch?.template) setTemplate(batch.template);else
     setTemplate({ htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now' });
+    // Seed config: prefer batch override, then project default, then "none"
+    const initialSeed = batch?.seedConfig || project?.defaultSeedConfig || { listId: '', mode: 'none' as SeedScope };
+    setTemplateSeed(initialSeed);
     setTemplateDialog({ projectId, batchId });
   };
 
@@ -236,16 +239,27 @@ const EmailDraft = () => {
     if (!template.subjectLine.trim()) {toast({ title: 'Subject line is required', variant: 'destructive' });return;}
     if (!template.emailAccountId) {toast({ title: 'Select an email account', variant: 'destructive' });return;}
     if (template.sendType === 'schedule' && !template.scheduledDate) {toast({ title: 'Select a schedule date', variant: 'destructive' });return;}
+    if (templateSeed.mode !== 'none' && !templateSeed.listId) {toast({ title: 'Pick a seed list', variant: 'destructive' });return;}
     if (templateDialog) {
-      setProjects((prev) => prev.map((p) =>
-      p.id === templateDialog.projectId ?
-      { ...p, batches: p.batches.map((b) => b.id === templateDialog.batchId ? { ...b, template: { ...template } } : b) } :
-      p
-      ));
-      toast({ title: 'Template saved successfully' });
+      setProjects((prev) => prev.map((p) => {
+        if (p.id !== templateDialog.projectId) return p;
+        // "all-future" updates the project default; others stay batch-scoped
+        const nextDefault = templateSeed.mode === 'all-future' ? templateSeed : p.defaultSeedConfig;
+        return {
+          ...p,
+          defaultSeedConfig: nextDefault,
+          batches: p.batches.map((b) => b.id === templateDialog.batchId ? { ...b, template: { ...template }, seedConfig: templateSeed } : b)
+        };
+      }));
+      const seedNote =
+        templateSeed.mode === 'test-only' ? ' — sending to seed list only' :
+        templateSeed.mode === 'all-future' ? ' — seed list applied to all future batches' :
+        templateSeed.mode === 'this-batch' ? ' — seed list included for this batch' : '';
+      toast({ title: `Template saved${seedNote}` });
     }
     setTemplateDialog(null);
   };
+
 
   const createFunnel = (projectId: string, batchId: string) => {
     if (!newFunnelName.trim()) {toast({ title: 'Enter a funnel name', variant: 'destructive' });return;}
