@@ -787,6 +787,47 @@ const EmailDraft = () => {
                 </div>
               }
             </div>
+
+            {/* Seed list inclusion */}
+            <div className="space-y-3 rounded-md border border-dashed border-border p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Include seed list?</Label>
+                {templateDialog && projects.find((p) => p.id === templateDialog.projectId)?.defaultSeedConfig?.mode === 'all-future' && (
+                  <Badge variant="secondary" className="text-[10px]">Project default applied</Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {([
+                  { v: 'none', label: 'No seed list' },
+                  { v: 'this-batch', label: 'Include — this batch only' },
+                  { v: 'all-future', label: 'Include — all future batches in this project' },
+                  { v: 'test-only', label: 'Test on seed list only (skip real send)' },
+                ] as { v: SeedScope; label: string }[]).map((opt) => (
+                  <label key={opt.v} className="flex items-center gap-2 cursor-pointer rounded border border-border p-2 hover:bg-muted/40">
+                    <input
+                      type="radio"
+                      name="seed-mode"
+                      checked={templateSeed.mode === opt.v}
+                      onChange={() => setTemplateSeed({ ...templateSeed, mode: opt.v, listId: opt.v === 'none' ? '' : templateSeed.listId })}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+              {templateSeed.mode !== 'none' && (
+                <Select value={templateSeed.listId} onValueChange={(v) => setTemplateSeed({ ...templateSeed, listId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Choose a seed list..." /></SelectTrigger>
+                  <SelectContent>
+                    {seedLists.map((list) => (
+                      <SelectItem key={list.id} value={list.id}>{list.name} ({list.contacts.length} contacts)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {templateSeed.mode === 'test-only' && (
+                <p className="text-[11px] text-amber-600">⚠ Real recipients will be skipped. Only the seed list will receive this send.</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTemplateDialog(null)}>Cancel</Button>
