@@ -250,14 +250,56 @@ const EmailDraft = () => {
     if (!newFunnelName.trim()) {toast({ title: 'Enter a funnel name', variant: 'destructive' });return;}
     const newFunnel: Funnel = {
       id: Date.now().toString(), name: newFunnelName.trim(), status: 'draft',
-      steps: [{ id: '1', delayDays: 0, delayHours: 1, subject: '', previewText: '', htmlContent: '', sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] }]
+      steps: [{ id: '1', delayDays: 0, delayHours: 1, subject: '', previewText: '', htmlContent: '', sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] }],
+      settings: { ...newFunnelSettings }
     };
     setProjects((prev) => prev.map((p) =>
     p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: [...b.funnels, newFunnel] } : b) } : p
     ));
     setNewFunnelName('');
+    setNewFunnelSettings({ audience: 'opens', exitWhen: ['unsubscribed'], fromName: '', senderEmail: '', replyTo: '' });
     setFunnelDialog(null);
     toast({ title: `Follow-up "${newFunnel.name}" created` });
+  };
+
+  const setBatchResend = (projectId: string, batchId: string, value: boolean) => {
+    setProjects((prev) => prev.map((p) =>
+      p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, resendToNonOpeners: value } : b) } : p
+    ));
+  };
+
+  const updateBatchWebinar = (projectId: string, batchId: string, patch: Partial<WebinarSequence>) => {
+    setProjects((prev) => prev.map((p) =>
+      p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, webinar: { ...(b.webinar || {}), ...patch } } : b) } : p
+    ));
+  };
+
+  const openWebinarIntro = (projectId: string, batchId: string) => {
+    const batch = projects.find((p) => p.id === projectId)?.batches.find((b) => b.id === batchId);
+    setWebinarDraft({ introHtml: batch?.webinar?.introHtml || '', introSubject: batch?.webinar?.introSubject || '' });
+    setWebinarIntroDialog({ projectId, batchId });
+  };
+
+  const openWebinarFinal = (projectId: string, batchId: string) => {
+    const batch = projects.find((p) => p.id === projectId)?.batches.find((b) => b.id === batchId);
+    setWebinarDraft({
+      finalAudience: batch?.webinar?.finalAudience || 'all-delivered',
+      finalSubject: batch?.webinar?.finalSubject || '',
+      finalHtml: batch?.webinar?.finalHtml || '',
+      finalSpecificEmails: batch?.webinar?.finalSpecificEmails || [],
+      finalUnknownEmails: batch?.webinar?.finalUnknownEmails || [],
+    });
+    setFinalSpecificInput((batch?.webinar?.finalSpecificEmails || []).join(', '));
+    setWebinarFinalDialog({ projectId, batchId });
+  };
+
+  const validateSpecificEmails = (projectId: string, raw: string) => {
+    const project = projects.find((p) => p.id === projectId);
+    const pool = new Set((project?.contactEmails || []).map((e) => e.toLowerCase()));
+    const all = raw.split(/[\s,;\n]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
+    const known = all.filter((e) => pool.has(e));
+    const unknown = all.filter((e) => !pool.has(e));
+    return { known, unknown };
   };
 
   const toggleFunnelStatus = (projectId: string, batchId: string, funnelId: string) => {
