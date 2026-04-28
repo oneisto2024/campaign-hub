@@ -838,18 +838,82 @@ const EmailDraft = () => {
 
       {/* Create Follow-up Dialog */}
       <Dialog open={!!funnelDialog} onOpenChange={(open) => !open && setFunnelDialog(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Follow-up</DialogTitle>
+            <DialogDescription>Configure who enters this follow-up and how it should behave. You can edit step content next.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="space-y-2">
               <Label>Follow-up Name *</Label>
               <Input value={newFunnelName} onChange={(e) => setNewFunnelName(e.target.value)} placeholder="e.g. Open-Follow-ups" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              How soon do you want the first message sent when someone enters this follow-up?
-              You can configure delays and content for each step after creation.
+
+            <div className="space-y-2">
+              <Label className="text-sm">Settings</Label>
+              <div className="rounded-md border border-border p-3 space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Whom do you want to send to?</Label>
+                  <Select value={newFunnelSettings.audience} onValueChange={(v: AudienceTarget) => setNewFunnelSettings({ ...newFunnelSettings, audience: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="opens">Opens</SelectItem>
+                      <SelectItem value="did-not-open">Did not open</SelectItem>
+                      <SelectItem value="clicks">Clicks</SelectItem>
+                      <SelectItem value="did-not-click">Did not click</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Exit this follow-up when someone…</Label>
+                  <div className="flex flex-wrap gap-3">
+                    {(['unsubscribed', 'replies'] as ExitCondition[]).map((cond) => {
+                      const checked = newFunnelSettings.exitWhen.includes(cond);
+                      return (
+                        <label key={cond} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v
+                                ? [...newFunnelSettings.exitWhen, cond]
+                                : newFunnelSettings.exitWhen.filter((c) => c !== cond);
+                              setNewFunnelSettings({ ...newFunnelSettings, exitWhen: next });
+                            }}
+                          />
+                          {cond === 'unsubscribed' ? 'Unsubscribed' : 'Replies'}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">From Name</Label>
+                    <Input value={newFunnelSettings.fromName} onChange={(e) => setNewFunnelSettings({ ...newFunnelSettings, fromName: e.target.value })} placeholder="e.g. Sara from Acme" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sender Email Address</Label>
+                    <Select value={newFunnelSettings.senderEmail} onValueChange={(v) => setNewFunnelSettings({ ...newFunnelSettings, senderEmail: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        {MOCK_EMAIL_ACCOUNTS.map((acc) => (
+                          <SelectItem key={acc.id} value={acc.email}>{acc.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Reply-To Email</Label>
+                  <Input type="email" value={newFunnelSettings.replyTo} onChange={(e) => setNewFunnelSettings({ ...newFunnelSettings, replyTo: e.target.value })} placeholder="reply@company.com" />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Next step: you'll be able to set the timing, subject line, preview text, content, and which days of the week to send.
             </p>
           </div>
           <DialogFooter>
