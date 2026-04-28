@@ -138,8 +138,10 @@ const MOCK_PROJECTS: EmailDraftProject[] = [
 },
 {
   id: '2', clientId: 'ACME001', projectName: 'Q2 Webinar Follow-up', uniqueId: 'PRJ-2026-005',
+  projectType: 'Webinar',
+  contactEmails: ['attendee1@acme.com', 'attendee2@acme.com', 'attendee3@acme.com', 'lead@globex.com', 'cfo@initech.com'],
   batches: [
-  { id: 'b3', batchName: 'Batch 1', validCount: 2100, catchAllCount: 400, totalCount: 2500, publishedAt: new Date('2026-02-01'), funnels: [], status: 'paused', countries: ['United States', 'Japan', 'Australia', 'Singapore'] }]
+  { id: 'b3', batchName: 'Batch 1', validCount: 2100, catchAllCount: 400, totalCount: 2500, publishedAt: new Date('2026-02-01'), funnels: [], status: 'paused', countries: ['United States', 'Japan', 'Australia', 'Singapore'], webinar: { finalAudience: 'all-delivered' } }]
 
 },
 {
