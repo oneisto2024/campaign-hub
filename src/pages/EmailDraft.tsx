@@ -52,11 +52,42 @@ interface FunnelStep {
   sendDays: string[];
 }
 
+type AudienceTarget = 'opens' | 'did-not-open' | 'clicks' | 'did-not-click';
+type ExitCondition = 'unsubscribed' | 'replies';
+
+interface FunnelSettings {
+  audience: AudienceTarget;
+  exitWhen: ExitCondition[];
+  fromName: string;
+  senderEmail: string;
+  replyTo: string;
+}
+
 interface Funnel {
   id: string;
   name: string;
   status: 'active' | 'paused' | 'draft';
   steps: FunnelStep[];
+  settings?: FunnelSettings;
+}
+
+type FinalEmailAudience = 'all-delivered' | 'opens' | 'clicks' | 'specific';
+
+interface WebinarSequence {
+  introHtml?: string;
+  introSubject?: string;
+  finalAudience?: FinalEmailAudience;
+  finalSpecificEmails?: string[];
+  finalUnknownEmails?: string[];
+  finalHtml?: string;
+  finalSubject?: string;
+}
+
+type SeedScope = 'none' | 'this-batch' | 'all-future' | 'test-only';
+
+interface SeedConfig {
+  listId: string;
+  mode: SeedScope;
 }
 
 interface EmailTemplate {
@@ -79,6 +110,9 @@ interface BatchRecord {
   funnels: Funnel[];
   status: 'active' | 'paused' | 'scheduled' | 'draft';
   countries: string[];
+  resendToNonOpeners?: boolean;
+  webinar?: WebinarSequence;
+  seedConfig?: SeedConfig;
 }
 
 interface EmailDraftProject {
@@ -88,6 +122,9 @@ interface EmailDraftProject {
   uniqueId: string;
   projectType?: string;
   batches: BatchRecord[];
+  defaultSeedConfig?: SeedConfig;
+  /** Mock contact pool used to validate "specific emails" in the Webinar final mail */
+  contactEmails?: string[];
 }
 
 // Mock data
@@ -101,8 +138,10 @@ const MOCK_PROJECTS: EmailDraftProject[] = [
 },
 {
   id: '2', clientId: 'ACME001', projectName: 'Q2 Webinar Follow-up', uniqueId: 'PRJ-2026-005',
+  projectType: 'Webinar',
+  contactEmails: ['attendee1@acme.com', 'attendee2@acme.com', 'attendee3@acme.com', 'lead@globex.com', 'cfo@initech.com'],
   batches: [
-  { id: 'b3', batchName: 'Batch 1', validCount: 2100, catchAllCount: 400, totalCount: 2500, publishedAt: new Date('2026-02-01'), funnels: [], status: 'paused', countries: ['United States', 'Japan', 'Australia', 'Singapore'] }]
+  { id: 'b3', batchName: 'Batch 1', validCount: 2100, catchAllCount: 400, totalCount: 2500, publishedAt: new Date('2026-02-01'), funnels: [], status: 'paused', countries: ['United States', 'Japan', 'Australia', 'Singapore'], webinar: { finalAudience: 'all-delivered' } }]
 
 },
 {
@@ -125,10 +164,14 @@ const EmailDraft = () => {
   const [template, setTemplate] = useState<EmailTemplate>({
     htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now'
   });
+  const [templateSeed, setTemplateSeed] = useState<SeedConfig>({ listId: '', mode: 'none' });
 
   // Funnel dialog
   const [funnelDialog, setFunnelDialog] = useState<{projectId: string;batchId: string;} | null>(null);
   const [newFunnelName, setNewFunnelName] = useState('');
+  const [newFunnelSettings, setNewFunnelSettings] = useState<FunnelSettings>({
+    audience: 'opens', exitWhen: ['unsubscribed'], fromName: '', senderEmail: '', replyTo: ''
+  });
 
   // Funnel step editor
   const [editingFunnel, setEditingFunnel] = useState<{projectId: string;batchId: string;funnelId: string;} | null>(null);
@@ -143,6 +186,12 @@ const EmailDraft = () => {
   // Publish dialog
   const [publishDialog, setPublishDialog] = useState<{projectId: string;} | null>(null);
   const [selectedProjectType, setSelectedProjectType] = useState('');
+
+  // Webinar editors
+  const [webinarIntroDialog, setWebinarIntroDialog] = useState<{projectId: string;batchId: string;} | null>(null);
+  const [webinarFinalDialog, setWebinarFinalDialog] = useState<{projectId: string;batchId: string;} | null>(null);
+  const [webinarDraft, setWebinarDraft] = useState<WebinarSequence>({});
+  const [finalSpecificInput, setFinalSpecificInput] = useState('');
 
   // Group projects by clientId
   const groupedProjects = useMemo(() => {
@@ -180,6 +229,9 @@ const EmailDraft = () => {
     const batch = project?.batches.find((b) => b.id === batchId);
     if (batch?.template) setTemplate(batch.template);else
     setTemplate({ htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now' });
+    // Seed config: prefer batch override, then project default, then "none"
+    const initialSeed = batch?.seedConfig || project?.defaultSeedConfig || { listId: '', mode: 'none' as SeedScope };
+    setTemplateSeed(initialSeed);
     setTemplateDialog({ projectId, batchId });
   };
 
@@ -187,29 +239,82 @@ const EmailDraft = () => {
     if (!template.subjectLine.trim()) {toast({ title: 'Subject line is required', variant: 'destructive' });return;}
     if (!template.emailAccountId) {toast({ title: 'Select an email account', variant: 'destructive' });return;}
     if (template.sendType === 'schedule' && !template.scheduledDate) {toast({ title: 'Select a schedule date', variant: 'destructive' });return;}
+    if (templateSeed.mode !== 'none' && !templateSeed.listId) {toast({ title: 'Pick a seed list', variant: 'destructive' });return;}
     if (templateDialog) {
-      setProjects((prev) => prev.map((p) =>
-      p.id === templateDialog.projectId ?
-      { ...p, batches: p.batches.map((b) => b.id === templateDialog.batchId ? { ...b, template: { ...template } } : b) } :
-      p
-      ));
-      toast({ title: 'Template saved successfully' });
+      setProjects((prev) => prev.map((p) => {
+        if (p.id !== templateDialog.projectId) return p;
+        // "all-future" updates the project default; others stay batch-scoped
+        const nextDefault = templateSeed.mode === 'all-future' ? templateSeed : p.defaultSeedConfig;
+        return {
+          ...p,
+          defaultSeedConfig: nextDefault,
+          batches: p.batches.map((b) => b.id === templateDialog.batchId ? { ...b, template: { ...template }, seedConfig: templateSeed } : b)
+        };
+      }));
+      const seedNote =
+        templateSeed.mode === 'test-only' ? ' — sending to seed list only' :
+        templateSeed.mode === 'all-future' ? ' — seed list applied to all future batches' :
+        templateSeed.mode === 'this-batch' ? ' — seed list included for this batch' : '';
+      toast({ title: `Template saved${seedNote}` });
     }
     setTemplateDialog(null);
   };
+
 
   const createFunnel = (projectId: string, batchId: string) => {
     if (!newFunnelName.trim()) {toast({ title: 'Enter a funnel name', variant: 'destructive' });return;}
     const newFunnel: Funnel = {
       id: Date.now().toString(), name: newFunnelName.trim(), status: 'draft',
-      steps: [{ id: '1', delayDays: 0, delayHours: 1, subject: '', previewText: '', htmlContent: '', sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] }]
+      steps: [{ id: '1', delayDays: 0, delayHours: 1, subject: '', previewText: '', htmlContent: '', sendDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] }],
+      settings: { ...newFunnelSettings }
     };
     setProjects((prev) => prev.map((p) =>
     p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, funnels: [...b.funnels, newFunnel] } : b) } : p
     ));
     setNewFunnelName('');
+    setNewFunnelSettings({ audience: 'opens', exitWhen: ['unsubscribed'], fromName: '', senderEmail: '', replyTo: '' });
     setFunnelDialog(null);
     toast({ title: `Follow-up "${newFunnel.name}" created` });
+  };
+
+  const setBatchResend = (projectId: string, batchId: string, value: boolean) => {
+    setProjects((prev) => prev.map((p) =>
+      p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, resendToNonOpeners: value } : b) } : p
+    ));
+  };
+
+  const updateBatchWebinar = (projectId: string, batchId: string, patch: Partial<WebinarSequence>) => {
+    setProjects((prev) => prev.map((p) =>
+      p.id === projectId ? { ...p, batches: p.batches.map((b) => b.id === batchId ? { ...b, webinar: { ...(b.webinar || {}), ...patch } } : b) } : p
+    ));
+  };
+
+  const openWebinarIntro = (projectId: string, batchId: string) => {
+    const batch = projects.find((p) => p.id === projectId)?.batches.find((b) => b.id === batchId);
+    setWebinarDraft({ introHtml: batch?.webinar?.introHtml || '', introSubject: batch?.webinar?.introSubject || '' });
+    setWebinarIntroDialog({ projectId, batchId });
+  };
+
+  const openWebinarFinal = (projectId: string, batchId: string) => {
+    const batch = projects.find((p) => p.id === projectId)?.batches.find((b) => b.id === batchId);
+    setWebinarDraft({
+      finalAudience: batch?.webinar?.finalAudience || 'all-delivered',
+      finalSubject: batch?.webinar?.finalSubject || '',
+      finalHtml: batch?.webinar?.finalHtml || '',
+      finalSpecificEmails: batch?.webinar?.finalSpecificEmails || [],
+      finalUnknownEmails: batch?.webinar?.finalUnknownEmails || [],
+    });
+    setFinalSpecificInput((batch?.webinar?.finalSpecificEmails || []).join(', '));
+    setWebinarFinalDialog({ projectId, batchId });
+  };
+
+  const validateSpecificEmails = (projectId: string, raw: string) => {
+    const project = projects.find((p) => p.id === projectId);
+    const pool = new Set((project?.contactEmails || []).map((e) => e.toLowerCase()));
+    const all = raw.split(/[\s,;\n]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
+    const known = all.filter((e) => pool.has(e));
+    const unknown = all.filter((e) => !pool.has(e));
+    return { known, unknown };
   };
 
   const toggleFunnelStatus = (projectId: string, batchId: string, funnelId: string) => {
@@ -473,16 +578,34 @@ const EmailDraft = () => {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {project.batches.map((batch, bIdx) =>
+                                  {project.batches.map((batch, bIdx) => {
+                                    const isWebinar = project.projectType === 'Webinar';
+                                    return (
                               <tr key={batch.id} className="border-b border-border/30 last:border-0">
                                       <td className="py-3 text-muted-foreground text-xs">{bIdx + 1}</td>
                                       <td className="py-3 font-medium">{batch.batchName}</td>
-                                      <td className="py-3">{batch.totalCount.toLocaleString()}</td>
+                                      <td className="py-3">
+                                        <div className="flex flex-col gap-0.5">
+                                          <span>{batch.totalCount.toLocaleString()}</span>
+                                          <span className="text-[10px] text-muted-foreground">
+                                            {batch.validCount.toLocaleString()} valid · {batch.catchAllCount.toLocaleString()} catch-all
+                                          </span>
+                                        </div>
+                                      </td>
                                       <td className="py-3">{renderCountryCell(batch.countries)}</td>
                                       <td className="py-3">
-                                        <Button variant={batch.template ? 'secondary' : 'outline'} size="sm" onClick={() => openTemplateDialog(project.id, batch.id)}>
-                                          <Upload className="h-3 w-3 mr-1" /> {batch.template ? 'Edit Template' : 'Upload Template'}
-                                        </Button>
+                                        <div className="flex flex-col gap-1">
+                                          <Button variant={batch.template ? 'secondary' : 'outline'} size="sm" onClick={() => openTemplateDialog(project.id, batch.id)}>
+                                            <Upload className="h-3 w-3 mr-1" /> {batch.template ? 'Edit Template' : 'Upload Template'}
+                                          </Button>
+                                          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer pl-0.5">
+                                            <Checkbox
+                                              checked={!!batch.resendToNonOpeners}
+                                              onCheckedChange={(v) => setBatchResend(project.id, batch.id, !!v)}
+                                            />
+                                            Re-send to non-openers
+                                          </label>
+                                        </div>
                                       </td>
                                       <td className="py-3">
                                         {(() => {
@@ -516,15 +639,33 @@ const EmailDraft = () => {
                                         })()}
                                       </td>
                                       <td className="py-3">
-                                        <div className="flex items-center gap-2">
-                                          <Badge variant="outline">{batch.funnels.length} {batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up'}</Badge>
-                                          <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })}>
-                                            <Plus className="h-3 w-3 mr-1" /> Follow-up
-                                          </Button>
-                                        </div>
+                                        {isWebinar ? (
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <Button variant="outline" size="sm" onClick={() => openWebinarIntro(project.id, batch.id)}>
+                                              <Mail className="h-3 w-3 mr-1" />
+                                              {batch.webinar?.introHtml ? 'Edit Intro' : 'Add Intro'}
+                                            </Button>
+                                            <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })} disabled={batch.funnels.length >= 3} title={batch.funnels.length >= 3 ? 'Webinar allows up to 3 follow-ups' : ''}>
+                                              <Plus className="h-3 w-3 mr-1" />
+                                              Follow-up ({batch.funnels.length}/3)
+                                            </Button>
+                                            <Button variant="outline" size="sm" onClick={() => openWebinarFinal(project.id, batch.id)}>
+                                              <Send className="h-3 w-3 mr-1" />
+                                              {batch.webinar?.finalHtml ? 'Edit Final' : 'Add Final'}
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2">
+                                            <Badge variant="outline">{batch.funnels.length} {batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up'}</Badge>
+                                            <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })}>
+                                              <Plus className="h-3 w-3 mr-1" /> Follow-up
+                                            </Button>
+                                          </div>
+                                        )}
                                       </td>
                                     </tr>
-                              )}
+                                    );
+                                  })}
                                 </tbody>
                               </table>
 
@@ -646,6 +787,47 @@ const EmailDraft = () => {
                 </div>
               }
             </div>
+
+            {/* Seed list inclusion */}
+            <div className="space-y-3 rounded-md border border-dashed border-border p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Include seed list?</Label>
+                {templateDialog && projects.find((p) => p.id === templateDialog.projectId)?.defaultSeedConfig?.mode === 'all-future' && (
+                  <Badge variant="secondary" className="text-[10px]">Project default applied</Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {([
+                  { v: 'none', label: 'No seed list' },
+                  { v: 'this-batch', label: 'Include — this batch only' },
+                  { v: 'all-future', label: 'Include — all future batches in this project' },
+                  { v: 'test-only', label: 'Test on seed list only (skip real send)' },
+                ] as { v: SeedScope; label: string }[]).map((opt) => (
+                  <label key={opt.v} className="flex items-center gap-2 cursor-pointer rounded border border-border p-2 hover:bg-muted/40">
+                    <input
+                      type="radio"
+                      name="seed-mode"
+                      checked={templateSeed.mode === opt.v}
+                      onChange={() => setTemplateSeed({ ...templateSeed, mode: opt.v, listId: opt.v === 'none' ? '' : templateSeed.listId })}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+              {templateSeed.mode !== 'none' && (
+                <Select value={templateSeed.listId} onValueChange={(v) => setTemplateSeed({ ...templateSeed, listId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Choose a seed list..." /></SelectTrigger>
+                  <SelectContent>
+                    {seedLists.map((list) => (
+                      <SelectItem key={list.id} value={list.id}>{list.name} ({list.contacts.length} contacts)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {templateSeed.mode === 'test-only' && (
+                <p className="text-[11px] text-amber-600">⚠ Real recipients will be skipped. Only the seed list will receive this send.</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTemplateDialog(null)}>Cancel</Button>
@@ -656,18 +838,82 @@ const EmailDraft = () => {
 
       {/* Create Follow-up Dialog */}
       <Dialog open={!!funnelDialog} onOpenChange={(open) => !open && setFunnelDialog(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Follow-up</DialogTitle>
+            <DialogDescription>Configure who enters this follow-up and how it should behave. You can edit step content next.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="space-y-2">
               <Label>Follow-up Name *</Label>
               <Input value={newFunnelName} onChange={(e) => setNewFunnelName(e.target.value)} placeholder="e.g. Open-Follow-ups" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              How soon do you want the first message sent when someone enters this follow-up?
-              You can configure delays and content for each step after creation.
+
+            <div className="space-y-2">
+              <Label className="text-sm">Settings</Label>
+              <div className="rounded-md border border-border p-3 space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Whom do you want to send to?</Label>
+                  <Select value={newFunnelSettings.audience} onValueChange={(v: AudienceTarget) => setNewFunnelSettings({ ...newFunnelSettings, audience: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="opens">Opens</SelectItem>
+                      <SelectItem value="did-not-open">Did not open</SelectItem>
+                      <SelectItem value="clicks">Clicks</SelectItem>
+                      <SelectItem value="did-not-click">Did not click</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Exit this follow-up when someone…</Label>
+                  <div className="flex flex-wrap gap-3">
+                    {(['unsubscribed', 'replies'] as ExitCondition[]).map((cond) => {
+                      const checked = newFunnelSettings.exitWhen.includes(cond);
+                      return (
+                        <label key={cond} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v
+                                ? [...newFunnelSettings.exitWhen, cond]
+                                : newFunnelSettings.exitWhen.filter((c) => c !== cond);
+                              setNewFunnelSettings({ ...newFunnelSettings, exitWhen: next });
+                            }}
+                          />
+                          {cond === 'unsubscribed' ? 'Unsubscribed' : 'Replies'}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">From Name</Label>
+                    <Input value={newFunnelSettings.fromName} onChange={(e) => setNewFunnelSettings({ ...newFunnelSettings, fromName: e.target.value })} placeholder="e.g. Sara from Acme" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sender Email Address</Label>
+                    <Select value={newFunnelSettings.senderEmail} onValueChange={(v) => setNewFunnelSettings({ ...newFunnelSettings, senderEmail: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        {MOCK_EMAIL_ACCOUNTS.map((acc) => (
+                          <SelectItem key={acc.id} value={acc.email}>{acc.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Reply-To Email</Label>
+                  <Input type="email" value={newFunnelSettings.replyTo} onChange={(e) => setNewFunnelSettings({ ...newFunnelSettings, replyTo: e.target.value })} placeholder="reply@company.com" />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Next step: you'll be able to set the timing, subject line, preview text, content, and which days of the week to send.
             </p>
           </div>
           <DialogFooter>
@@ -863,6 +1109,134 @@ const EmailDraft = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setSendTestDialog(null)}>Cancel</Button>
             <Button onClick={handleSendTest}><Send className="h-4 w-4 mr-2" /> Send Test</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Webinar — Intro Mail Dialog */}
+      <Dialog open={!!webinarIntroDialog} onOpenChange={(open) => !open && setWebinarIntroDialog(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Webinar — Intro Mail</DialogTitle>
+            <DialogDescription>The first email sent to your webinar audience.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Subject Line *</Label>
+              <Input value={webinarDraft.introSubject || ''} onChange={(e) => setWebinarDraft({ ...webinarDraft, introSubject: e.target.value })} placeholder="You're invited to our webinar" />
+            </div>
+            <div className="space-y-2">
+              <Label>HTML Content *</Label>
+              <Textarea value={webinarDraft.introHtml || ''} onChange={(e) => setWebinarDraft({ ...webinarDraft, introHtml: e.target.value })} placeholder="Paste your HTML..." className="min-h-[200px] font-mono text-xs" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWebinarIntroDialog(null)}>Cancel</Button>
+            <Button onClick={() => {
+              if (!webinarIntroDialog) return;
+              if (!webinarDraft.introSubject?.trim()) { toast({ title: 'Subject required', variant: 'destructive' }); return; }
+              updateBatchWebinar(webinarIntroDialog.projectId, webinarIntroDialog.batchId, { introSubject: webinarDraft.introSubject, introHtml: webinarDraft.introHtml });
+              toast({ title: 'Intro mail saved' });
+              setWebinarIntroDialog(null);
+            }}>Save Intro</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Webinar — Final Email Dialog */}
+      <Dialog open={!!webinarFinalDialog} onOpenChange={(open) => !open && setWebinarFinalDialog(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Webinar — Final Email</DialogTitle>
+            <DialogDescription>The closing email sent after the follow-up sequence.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Send To</Label>
+              <Select
+                value={webinarDraft.finalAudience || 'all-delivered'}
+                onValueChange={(v: FinalEmailAudience) => setWebinarDraft({ ...webinarDraft, finalAudience: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-delivered">All Delivered</SelectItem>
+                  <SelectItem value="opens">Opens only</SelectItem>
+                  <SelectItem value="clicks">Clicks only</SelectItem>
+                  <SelectItem value="specific">Specific emails</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {webinarDraft.finalAudience === 'specific' && webinarFinalDialog && (
+              <div className="space-y-2 rounded-md border border-border p-3">
+                <Label className="text-xs">Paste emails (comma / newline separated) or upload CSV</Label>
+                <Textarea
+                  value={finalSpecificInput}
+                  onChange={(e) => setFinalSpecificInput(e.target.value)}
+                  placeholder="user1@acme.com, user2@globex.com"
+                  className="min-h-[80px] font-mono text-xs"
+                />
+                <div className="flex items-center gap-2">
+                  <Input type="file" accept=".csv,.txt" className="text-xs" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const text = await file.text();
+                    setFinalSpecificInput((prev) => (prev ? prev + ', ' : '') + text);
+                  }} />
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const { known, unknown } = validateSpecificEmails(webinarFinalDialog.projectId, finalSpecificInput);
+                    setWebinarDraft({ ...webinarDraft, finalSpecificEmails: known, finalUnknownEmails: unknown });
+                    if (unknown.length > 0) {
+                      toast({ title: `${unknown.length} email(s) not in this project`, description: 'They will be dropped from the send.', variant: 'destructive' });
+                    } else {
+                      toast({ title: `${known.length} email(s) matched the project database` });
+                    }
+                  }}>Validate</Button>
+                </div>
+                {(webinarDraft.finalSpecificEmails?.length || webinarDraft.finalUnknownEmails?.length) ? (
+                  <div className="text-[11px] space-y-1">
+                    {!!webinarDraft.finalSpecificEmails?.length && (
+                      <p className="text-chart-1">✓ {webinarDraft.finalSpecificEmails.length} matched and will be sent</p>
+                    )}
+                    {!!webinarDraft.finalUnknownEmails?.length && (
+                      <div className="text-destructive">
+                        ⚠ {webinarDraft.finalUnknownEmails.length} not in project DB (dropped):
+                        <div className="font-mono pl-2">{webinarDraft.finalUnknownEmails.slice(0, 5).join(', ')}{webinarDraft.finalUnknownEmails.length > 5 ? '…' : ''}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Subject Line *</Label>
+              <Input value={webinarDraft.finalSubject || ''} onChange={(e) => setWebinarDraft({ ...webinarDraft, finalSubject: e.target.value })} placeholder="Thanks for joining — here's what's next" />
+            </div>
+            <div className="space-y-2">
+              <Label>HTML Content *</Label>
+              <Textarea value={webinarDraft.finalHtml || ''} onChange={(e) => setWebinarDraft({ ...webinarDraft, finalHtml: e.target.value })} placeholder="Paste your HTML..." className="min-h-[180px] font-mono text-xs" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWebinarFinalDialog(null)}>Cancel</Button>
+            <Button onClick={() => {
+              if (!webinarFinalDialog) return;
+              if (!webinarDraft.finalSubject?.trim()) { toast({ title: 'Subject required', variant: 'destructive' }); return; }
+              if (webinarDraft.finalAudience === 'specific' && !(webinarDraft.finalSpecificEmails?.length)) {
+                toast({ title: 'Validate at least one specific email first', variant: 'destructive' });
+                return;
+              }
+              updateBatchWebinar(webinarFinalDialog.projectId, webinarFinalDialog.batchId, {
+                finalAudience: webinarDraft.finalAudience,
+                finalSubject: webinarDraft.finalSubject,
+                finalHtml: webinarDraft.finalHtml,
+                finalSpecificEmails: webinarDraft.finalSpecificEmails,
+                finalUnknownEmails: webinarDraft.finalUnknownEmails,
+              });
+              toast({ title: 'Final email saved' });
+              setWebinarFinalDialog(null);
+            }}>Save Final Email</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
