@@ -578,16 +578,34 @@ const EmailDraft = () => {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {project.batches.map((batch, bIdx) =>
+                                  {project.batches.map((batch, bIdx) => {
+                                    const isWebinar = project.projectType === 'Webinar';
+                                    return (
                               <tr key={batch.id} className="border-b border-border/30 last:border-0">
                                       <td className="py-3 text-muted-foreground text-xs">{bIdx + 1}</td>
                                       <td className="py-3 font-medium">{batch.batchName}</td>
-                                      <td className="py-3">{batch.totalCount.toLocaleString()}</td>
+                                      <td className="py-3">
+                                        <div className="flex flex-col gap-0.5">
+                                          <span>{batch.totalCount.toLocaleString()}</span>
+                                          <span className="text-[10px] text-muted-foreground">
+                                            {batch.validCount.toLocaleString()} valid · {batch.catchAllCount.toLocaleString()} catch-all
+                                          </span>
+                                        </div>
+                                      </td>
                                       <td className="py-3">{renderCountryCell(batch.countries)}</td>
                                       <td className="py-3">
-                                        <Button variant={batch.template ? 'secondary' : 'outline'} size="sm" onClick={() => openTemplateDialog(project.id, batch.id)}>
-                                          <Upload className="h-3 w-3 mr-1" /> {batch.template ? 'Edit Template' : 'Upload Template'}
-                                        </Button>
+                                        <div className="flex flex-col gap-1">
+                                          <Button variant={batch.template ? 'secondary' : 'outline'} size="sm" onClick={() => openTemplateDialog(project.id, batch.id)}>
+                                            <Upload className="h-3 w-3 mr-1" /> {batch.template ? 'Edit Template' : 'Upload Template'}
+                                          </Button>
+                                          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer pl-0.5">
+                                            <Checkbox
+                                              checked={!!batch.resendToNonOpeners}
+                                              onCheckedChange={(v) => setBatchResend(project.id, batch.id, !!v)}
+                                            />
+                                            Re-send to non-openers
+                                          </label>
+                                        </div>
                                       </td>
                                       <td className="py-3">
                                         {(() => {
@@ -621,15 +639,33 @@ const EmailDraft = () => {
                                         })()}
                                       </td>
                                       <td className="py-3">
-                                        <div className="flex items-center gap-2">
-                                          <Badge variant="outline">{batch.funnels.length} {batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up'}</Badge>
-                                          <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })}>
-                                            <Plus className="h-3 w-3 mr-1" /> Follow-up
-                                          </Button>
-                                        </div>
+                                        {isWebinar ? (
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <Button variant="outline" size="sm" onClick={() => openWebinarIntro(project.id, batch.id)}>
+                                              <Mail className="h-3 w-3 mr-1" />
+                                              {batch.webinar?.introHtml ? 'Edit Intro' : 'Add Intro'}
+                                            </Button>
+                                            <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })} disabled={batch.funnels.length >= 3} title={batch.funnels.length >= 3 ? 'Webinar allows up to 3 follow-ups' : ''}>
+                                              <Plus className="h-3 w-3 mr-1" />
+                                              Follow-up ({batch.funnels.length}/3)
+                                            </Button>
+                                            <Button variant="outline" size="sm" onClick={() => openWebinarFinal(project.id, batch.id)}>
+                                              <Send className="h-3 w-3 mr-1" />
+                                              {batch.webinar?.finalHtml ? 'Edit Final' : 'Add Final'}
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2">
+                                            <Badge variant="outline">{batch.funnels.length} {batch.funnels.length !== 1 ? 'follow-ups' : 'follow-up'}</Badge>
+                                            <Button variant="outline" size="sm" onClick={() => setFunnelDialog({ projectId: project.id, batchId: batch.id })}>
+                                              <Plus className="h-3 w-3 mr-1" /> Follow-up
+                                            </Button>
+                                          </div>
+                                        )}
                                       </td>
                                     </tr>
-                              )}
+                                    );
+                                  })}
                                 </tbody>
                               </table>
 
