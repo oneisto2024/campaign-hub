@@ -164,6 +164,7 @@ const EmailDraft = () => {
   const [template, setTemplate] = useState<EmailTemplate>({
     htmlCode: '', subjectLine: '', emailAccountId: '', sendType: 'now'
   });
+  const [templateSeed, setTemplateSeed] = useState<SeedConfig>({ listId: '', mode: 'none' });
 
   // Funnel dialog
   const [funnelDialog, setFunnelDialog] = useState<{projectId: string;batchId: string;} | null>(null);
