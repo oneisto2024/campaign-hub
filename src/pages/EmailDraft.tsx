@@ -168,6 +168,9 @@ const EmailDraft = () => {
   // Funnel dialog
   const [funnelDialog, setFunnelDialog] = useState<{projectId: string;batchId: string;} | null>(null);
   const [newFunnelName, setNewFunnelName] = useState('');
+  const [newFunnelSettings, setNewFunnelSettings] = useState<FunnelSettings>({
+    audience: 'opens', exitWhen: ['unsubscribed'], fromName: '', senderEmail: '', replyTo: ''
+  });
 
   // Funnel step editor
   const [editingFunnel, setEditingFunnel] = useState<{projectId: string;batchId: string;funnelId: string;} | null>(null);
@@ -182,6 +185,12 @@ const EmailDraft = () => {
   // Publish dialog
   const [publishDialog, setPublishDialog] = useState<{projectId: string;} | null>(null);
   const [selectedProjectType, setSelectedProjectType] = useState('');
+
+  // Webinar editors
+  const [webinarIntroDialog, setWebinarIntroDialog] = useState<{projectId: string;batchId: string;} | null>(null);
+  const [webinarFinalDialog, setWebinarFinalDialog] = useState<{projectId: string;batchId: string;} | null>(null);
+  const [webinarDraft, setWebinarDraft] = useState<WebinarSequence>({});
+  const [finalSpecificInput, setFinalSpecificInput] = useState('');
 
   // Group projects by clientId
   const groupedProjects = useMemo(() => {
