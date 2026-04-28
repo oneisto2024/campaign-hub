@@ -52,11 +52,42 @@ interface FunnelStep {
   sendDays: string[];
 }
 
+type AudienceTarget = 'opens' | 'did-not-open' | 'clicks' | 'did-not-click';
+type ExitCondition = 'unsubscribed' | 'replies';
+
+interface FunnelSettings {
+  audience: AudienceTarget;
+  exitWhen: ExitCondition[];
+  fromName: string;
+  senderEmail: string;
+  replyTo: string;
+}
+
 interface Funnel {
   id: string;
   name: string;
   status: 'active' | 'paused' | 'draft';
   steps: FunnelStep[];
+  settings?: FunnelSettings;
+}
+
+type FinalEmailAudience = 'all-delivered' | 'opens' | 'clicks' | 'specific';
+
+interface WebinarSequence {
+  introHtml?: string;
+  introSubject?: string;
+  finalAudience?: FinalEmailAudience;
+  finalSpecificEmails?: string[];
+  finalUnknownEmails?: string[];
+  finalHtml?: string;
+  finalSubject?: string;
+}
+
+type SeedScope = 'none' | 'this-batch' | 'all-future' | 'test-only';
+
+interface SeedConfig {
+  listId: string;
+  mode: SeedScope;
 }
 
 interface EmailTemplate {
